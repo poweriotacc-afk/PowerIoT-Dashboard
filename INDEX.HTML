@@ -1,0 +1,690 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<title>PowerIoT Remote Dashboard</title>
+
+<script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #f2f4f7;
+    color: #222;
+}
+
+header {
+    background: #111827;
+    color: white;
+    padding: 18px 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+header h1 {
+    margin: 0;
+    font-size: 24px;
+}
+
+.connection {
+    padding: 8px 14px;
+    border-radius: 20px;
+    background: #dc2626;
+    font-size: 14px;
+}
+
+.connection.connected {
+    background: #16a34a;
+}
+
+.container {
+    max-width: 1200px;
+    margin: auto;
+    padding: 25px;
+}
+
+.card {
+    background: white;
+    border-radius: 15px;
+    padding: 20px;
+    margin-bottom: 20px;
+    box-shadow: 0 3px 12px rgba(0,0,0,0.08);
+}
+
+.card h2 {
+    margin-top: 0;
+}
+
+.status-grid,
+.monitor-grid,
+.control-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 15px;
+}
+
+.status-box {
+    background: #f8fafc;
+    padding: 15px;
+    border-radius: 10px;
+}
+
+.status-box small {
+    color: #64748b;
+}
+
+.status-box strong {
+    display: block;
+    margin-top: 7px;
+    font-size: 20px;
+}
+
+.monitor-box {
+    background: #f8fafc;
+    padding: 18px;
+    border-radius: 12px;
+    text-align: center;
+}
+
+.monitor-box h3 {
+    margin-top: 0;
+}
+
+.value {
+    font-size: 25px;
+    font-weight: bold;
+    margin: 8px 0;
+}
+
+button {
+    border: none;
+    border-radius: 10px;
+    padding: 14px;
+    font-size: 16px;
+    cursor: pointer;
+    background: #2563eb;
+    color: white;
+}
+
+button:hover {
+    opacity: 0.85;
+}
+
+button.off {
+    background: #dc2626;
+}
+
+button.green {
+    background: #16a34a;
+}
+
+button.orange {
+    background: #ea580c;
+}
+
+button.gray {
+    background: #475569;
+}
+
+.log {
+    background: #111827;
+    color: #d1fae5;
+    padding: 15px;
+    border-radius: 10px;
+    height: 180px;
+    overflow-y: auto;
+    font-family: monospace;
+    font-size: 13px;
+}
+
+footer {
+    text-align: center;
+    padding: 20px;
+    color: #64748b;
+}
+
+@media(max-width:600px) {
+    header {
+        flex-direction: column;
+        gap: 10px;
+        text-align: center;
+    }
+
+    .container {
+        padding: 12px;
+    }
+}
+</style>
+</head>
+
+<body>
+
+<header>
+    <h1>⚡ PowerIoT</h1>
+    <div id="connectionStatus" class="connection">
+        DISCONNECTED
+    </div>
+</header>
+
+<div class="container">
+
+    <!-- SYSTEM STATUS -->
+    <div class="card">
+        <h2>System Status</h2>
+
+        <div class="status-grid">
+
+            <div class="status-box">
+                <small>System</small>
+                <strong id="systemStatus">---</strong>
+            </div>
+
+            <div class="status-box">
+                <small>Active Source</small>
+                <strong id="sourceStatus">---</strong>
+            </div>
+
+            <div class="status-box">
+                <small>Mode</small>
+                <strong id="modeStatus">---</strong>
+            </div>
+
+            <div class="status-box">
+                <small>Scheduling</small>
+                <strong id="scheduleStatus">---</strong>
+            </div>
+
+        </div>
+    </div>
+
+
+    <!-- CONTROLS -->
+    <div class="card">
+
+        <h2>Remote Control</h2>
+
+        <div class="control-grid">
+
+            <button onclick="sendCommand('system','ON')" class="green">
+                SYSTEM ON
+            </button>
+
+            <button onclick="sendCommand('system','OFF')" class="off">
+                SYSTEM OFF
+            </button>
+
+            <button onclick="sendCommand('source','SOLAR')" class="orange">
+                SOLAR
+            </button>
+
+            <button onclick="sendCommand('source','GRID')" class="gray">
+                GRID
+            </button>
+
+            <button onclick="sendCommand('mode','AUTO')" class="green">
+                AUTO
+            </button>
+
+            <button onclick="sendCommand('mode','MANUAL')" class="gray">
+                MANUAL
+            </button>
+
+            <button onclick="sendCommand('scheduling','ON')" class="green">
+                SCHEDULE ON
+            </button>
+
+            <button onclick="sendCommand('scheduling','OFF')" class="off">
+                SCHEDULE OFF
+            </button>
+
+        </div>
+
+    </div>
+
+
+    <!-- GRID MONITORING -->
+    <div class="card">
+
+        <h2>🔌 Grid Monitoring</h2>
+
+        <div class="monitor-grid">
+
+            <div class="monitor-box">
+                <h3>Voltage</h3>
+                <div class="value">
+                    <span id="gridV">0.00</span> V
+                </div>
+            </div>
+
+            <div class="monitor-box">
+                <h3>Current</h3>
+                <div class="value">
+                    <span id="gridI">0.00</span> A
+                </div>
+            </div>
+
+            <div class="monitor-box">
+                <h3>Power</h3>
+                <div class="value">
+                    <span id="gridP">0.00</span> W
+                </div>
+            </div>
+
+            <div class="monitor-box">
+                <h3>Energy</h3>
+                <div class="value">
+                    <span id="gridE">0.000</span> kWh
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- SOLAR MONITORING -->
+    <div class="card">
+
+        <h2>☀️ Solar Monitoring</h2>
+
+        <div class="monitor-grid">
+
+            <div class="monitor-box">
+                <h3>Voltage</h3>
+                <div class="value">
+                    <span id="solarV">0.00</span> V
+                </div>
+            </div>
+
+            <div class="monitor-box">
+                <h3>Current</h3>
+                <div class="value">
+                    <span id="solarI">0.00</span> A
+                </div>
+            </div>
+
+            <div class="monitor-box">
+                <h3>Power</h3>
+                <div class="value">
+                    <span id="solarP">0.00</span> W
+                </div>
+            </div>
+
+            <div class="monitor-box">
+                <h3>Energy</h3>
+                <div class="value">
+                    <span id="solarE">0.000</span> kWh
+                </div>
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- MQTT LOG -->
+    <div class="card">
+
+        <h2>MQTT Connection Log</h2>
+
+        <div id="log" class="log"></div>
+
+    </div>
+
+</div>
+
+<footer>
+    PowerIoT — IoT-Based Hybrid Solar-Grid Energy Manager
+</footer>
+
+
+<script>
+
+/* =========================================
+   HIVEMQ CLOUD
+========================================= */
+
+const MQTT_HOST =
+"640ee0af2af541f89544aaaba49f7711.s1.eu.hivemq.cloud";
+
+const MQTT_PORT = 8884;
+
+const MQTT_USERNAME = "poweriot_dashboard";
+
+/*
+   ILAGAY DITO ANG HIVEMQ PASSWORD MO.
+   HUWAG I-SHARE ANG PASSWORD SA CHAT.
+*/
+const MQTT_PASSWORD = "poweriot1234";
+
+
+/* =========================================
+   TOPICS
+========================================= */
+
+const TOPIC_SYSTEM =
+"poweriot/device01/command/system";
+
+const TOPIC_SOURCE =
+"poweriot/device01/command/source";
+
+const TOPIC_MODE =
+"poweriot/device01/command/mode";
+
+const TOPIC_SCHEDULING =
+"poweriot/device01/command/scheduling";
+
+const TOPIC_STATUS =
+"poweriot/device01/status";
+
+const TOPIC_SENSORS =
+"poweriot/device01/sensors";
+
+
+/* =========================================
+   MQTT CLIENT
+========================================= */
+
+let client;
+
+
+/* =========================================
+   LOG
+========================================= */
+
+function log(message) {
+
+    const box = document.getElementById("log");
+
+    const time = new Date().toLocaleTimeString();
+
+    box.innerHTML +=
+        `[${time}] ${message}<br>`;
+
+    box.scrollTop = box.scrollHeight;
+}
+
+
+/* =========================================
+   MQTT CONNECT
+========================================= */
+
+function connectMQTT() {
+
+    log("Connecting to HiveMQ Cloud...");
+
+    const clientId =
+        "PowerIoT-Web-" +
+        Math.random().toString(16).substring(2, 10);
+
+    client = mqtt.connect(
+        `wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`,
+        {
+            username: MQTT_USERNAME,
+            password: MQTT_PASSWORD,
+
+            clientId: clientId,
+
+            clean: true,
+
+            reconnectPeriod: 3000,
+
+            connectTimeout: 10000
+        }
+    );
+
+
+    /* CONNECTED */
+
+    client.on("connect", function() {
+
+        log("MQTT CONNECTED");
+
+        const status =
+            document.getElementById("connectionStatus");
+
+        status.textContent = "CONNECTED";
+
+        status.classList.add("connected");
+
+
+        client.subscribe(TOPIC_STATUS);
+
+        client.subscribe(TOPIC_SENSORS);
+
+        log("Subscribed to status");
+
+        log("Subscribed to sensors");
+
+    });
+
+
+    /* MESSAGE */
+
+    client.on("message", function(topic, message) {
+
+        const data =
+            message.toString();
+
+        log(
+            "RX " +
+            topic +
+            " → " +
+            data
+        );
+
+
+        try {
+
+            const json =
+                JSON.parse(data);
+
+
+            if(topic === TOPIC_STATUS) {
+
+                updateStatus(json);
+
+            }
+
+
+            if(topic === TOPIC_SENSORS) {
+
+                updateSensors(json);
+
+            }
+
+        }
+
+        catch(error) {
+
+            log("JSON ERROR");
+
+        }
+
+    });
+
+
+    /* ERROR */
+
+    client.on("error", function(error) {
+
+        log(
+            "MQTT ERROR: " +
+            error.message
+        );
+
+    });
+
+
+    /* DISCONNECT */
+
+    client.on("close", function() {
+
+        log("MQTT DISCONNECTED");
+
+        const status =
+            document.getElementById("connectionStatus");
+
+        status.textContent = "DISCONNECTED";
+
+        status.classList.remove("connected");
+
+    });
+
+}
+
+
+/* =========================================
+   UPDATE STATUS
+========================================= */
+
+function updateStatus(data) {
+
+    document.getElementById(
+        "systemStatus"
+    ).textContent =
+        data.systemOn ? "ON" : "OFF";
+
+
+    document.getElementById(
+        "sourceStatus"
+    ).textContent =
+        data.source || "---";
+
+
+    document.getElementById(
+        "modeStatus"
+    ).textContent =
+        data.mode || "---";
+
+
+    document.getElementById(
+        "scheduleStatus"
+    ).textContent =
+        data.scheduling ? "ON" : "OFF";
+
+}
+
+
+/* =========================================
+   UPDATE SENSOR DATA
+========================================= */
+
+function updateSensors(data) {
+
+    document.getElementById("gridV")
+        .textContent =
+        Number(data.gridV || 0).toFixed(2);
+
+    document.getElementById("gridI")
+        .textContent =
+        Number(data.gridI || 0).toFixed(2);
+
+    document.getElementById("gridP")
+        .textContent =
+        Number(data.gridP || 0).toFixed(2);
+
+    document.getElementById("gridE")
+        .textContent =
+        Number(data.gridE || 0).toFixed(3);
+
+
+    document.getElementById("solarV")
+        .textContent =
+        Number(data.solarV || 0).toFixed(2);
+
+    document.getElementById("solarI")
+        .textContent =
+        Number(data.solarI || 0).toFixed(2);
+
+    document.getElementById("solarP")
+        .textContent =
+        Number(data.solarP || 0).toFixed(2);
+
+    document.getElementById("solarE")
+        .textContent =
+        Number(data.solarE || 0).toFixed(3);
+
+}
+
+
+/* =========================================
+   SEND COMMAND
+========================================= */
+
+function sendCommand(type, value) {
+
+    if(!client || !client.connected) {
+
+        log("ERROR: MQTT not connected");
+
+        return;
+
+    }
+
+
+    let topic;
+
+
+    if(type === "system") {
+
+        topic = TOPIC_SYSTEM;
+
+    }
+
+    else if(type === "source") {
+
+        topic = TOPIC_SOURCE;
+
+    }
+
+    else if(type === "mode") {
+
+        topic = TOPIC_MODE;
+
+    }
+
+    else if(type === "scheduling") {
+
+        topic = TOPIC_SCHEDULING;
+
+    }
+
+
+    client.publish(
+        topic,
+        value,
+        {
+            qos: 0
+        }
+    );
+
+
+    log(
+        "TX " +
+        topic +
+        " → " +
+        value
+    );
+
+}
+
+
+/* =========================================
+   START
+========================================= */
+
+connectMQTT();
+
+</script>
+
+</body>
+</html>
