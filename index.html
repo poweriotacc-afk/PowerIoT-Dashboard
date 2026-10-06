@@ -2,689 +2,147 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-<title>PowerIoT Remote Dashboard</title>
-
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PowerIoT Dashboard</title>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
-
+<script>if(localStorage.getItem('darkMode')==='1')document.documentElement.classList.add('dark-mode');</script>
 <style>
-* {
-    box-sizing: border-box;
-}
-
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background: #f2f4f7;
-    color: #222;
-}
-
-header {
-    background: #111827;
-    color: white;
-    padding: 18px 25px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-}
-
-header h1 {
-    margin: 0;
-    font-size: 24px;
-}
-
-.connection {
-    padding: 8px 14px;
-    border-radius: 20px;
-    background: #dc2626;
-    font-size: 14px;
-}
-
-.connection.connected {
-    background: #16a34a;
-}
-
-.container {
-    max-width: 1200px;
-    margin: auto;
-    padding: 25px;
-}
-
-.card {
-    background: white;
-    border-radius: 15px;
-    padding: 20px;
-    margin-bottom: 20px;
-    box-shadow: 0 3px 12px rgba(0,0,0,0.08);
-}
-
-.card h2 {
-    margin-top: 0;
-}
-
-.status-grid,
-.monitor-grid,
-.control-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-    gap: 15px;
-}
-
-.status-box {
-    background: #f8fafc;
-    padding: 15px;
-    border-radius: 10px;
-}
-
-.status-box small {
-    color: #64748b;
-}
-
-.status-box strong {
-    display: block;
-    margin-top: 7px;
-    font-size: 20px;
-}
-
-.monitor-box {
-    background: #f8fafc;
-    padding: 18px;
-    border-radius: 12px;
-    text-align: center;
-}
-
-.monitor-box h3 {
-    margin-top: 0;
-}
-
-.value {
-    font-size: 25px;
-    font-weight: bold;
-    margin: 8px 0;
-}
-
-button {
-    border: none;
-    border-radius: 10px;
-    padding: 14px;
-    font-size: 16px;
-    cursor: pointer;
-    background: #2563eb;
-    color: white;
-}
-
-button:hover {
-    opacity: 0.85;
-}
-
-button.off {
-    background: #dc2626;
-}
-
-button.green {
-    background: #16a34a;
-}
-
-button.orange {
-    background: #ea580c;
-}
-
-button.gray {
-    background: #475569;
-}
-
-.log {
-    background: #111827;
-    color: #d1fae5;
-    padding: 15px;
-    border-radius: 10px;
-    height: 180px;
-    overflow-y: auto;
-    font-family: monospace;
-    font-size: 13px;
-}
-
-footer {
-    text-align: center;
-    padding: 20px;
-    color: #64748b;
-}
-
-@media(max-width:600px) {
-    header {
-        flex-direction: column;
-        gap: 10px;
-        text-align: center;
-    }
-
-    .container {
-        padding: 12px;
-    }
-}
+:root{--bg:#f2f4f7;--card:#fff;--txt:#333;--txt-bold:#111;--txt-muted:#666;--border:#ccc;--status-bg:#f8f9fa;}
+html.dark-mode{--bg:#121212;--card:#1e1e1e;--txt:#e0e0e0;--txt-bold:#fff;--txt-muted:#aaa;--border:#444;--status-bg:#2a2a2a;}
+*{box-sizing:border-box}
+body{font-family:Arial,sans-serif;background:var(--bg);margin:0;padding:15px;color:var(--txt);transition:.3s}
+.container{max-width:900px;margin:auto}
+.card{background:var(--card);padding:20px;margin-bottom:15px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);transition:.3s}
+h1,h2,h3{margin-top:0;color:var(--txt-bold)}
+button{padding:12px 18px;border:0;border-radius:8px;margin:4px;cursor:pointer;font-size:15px;font-weight:bold;transition:.2s}
+.btn{background:#1976d2;color:white}.btn:hover{background:#115293}.danger{background:#d32f2f;color:white}.danger:hover{background:#9a0007}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.value{font-size:25px;font-weight:bold;color:#1976d2}.small{color:var(--txt-muted);font-size:14px;text-transform:uppercase;letter-spacing:.5px}
+input,select{padding:11px;margin:5px 0;border:1px solid var(--border);border-radius:7px;font-size:15px;background:var(--card);color:var(--txt);box-sizing:border-box}a{text-decoration:none;color:inherit}
+table{width:100%;border-collapse:collapse}td,th{padding:12px;border-bottom:1px solid var(--border);text-align:left}th{background:rgba(128,128,128,.05)}
+.header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;position:relative}.header-left{display:flex;align-items:center;gap:10px}
+.back-btn{font-size:30px;color:var(--txt-bold);text-decoration:none;display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;transition:.2s;background:none;border:none;cursor:pointer}
+.back-btn:hover{background:rgba(128,128,128,.1)}.settings-btn{font-size:24px;background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;color:var(--txt-bold)}
+.settings-btn:hover{background:rgba(128,128,128,.1)}.dropdown{position:absolute;right:0;top:45px;background:var(--card);border:1px solid var(--border);box-shadow:0 8px 16px rgba(0,0,0,.15);border-radius:8px;display:none;flex-direction:column;min-width:210px;z-index:100;overflow:hidden}.dropdown.show{display:flex}.dropdown a{padding:14px 16px;color:var(--txt);border-bottom:1px solid var(--border);font-size:15px;font-weight:bold;cursor:pointer}.dropdown a:hover{background:rgba(128,128,128,.08)}.dropdown a:last-child{border-bottom:none}
+.status-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.status-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:var(--status-bg)}.status-item-full{grid-column:span 2}
+.status-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}.dot-on{background:#388e3c;box-shadow:0 0 8px #388e3c}.dot-off{background:#bdbdbd}.dot-grid{background:#1976d2;box-shadow:0 0 8px #1976d2}.dot-solar{background:#f57c00;box-shadow:0 0 8px #f57c00}.dot-manual{background:#757575;box-shadow:0 0 6px #757575}.dot-auto{background:#7b1fa2;box-shadow:0 0 8px #7b1fa2}.dot-sched-on{background:#00796b;box-shadow:0 0 8px #00796b}.dot-event-active{background:#388e3c;box-shadow:0 0 8px #388e3c}.dot-event-inactive{background:#bdbdbd}
+.status-info{display:flex;flex-direction:column}.status-name{font-size:12px;color:var(--txt-muted);text-transform:uppercase;letter-spacing:.5px}.status-val{font-size:16px;font-weight:bold;color:var(--txt-bold)}
+.switch-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)}.switch-row:last-child{border-bottom:none}.switch-label{font-size:16px;font-weight:bold;color:var(--txt-bold)}.switch{position:relative;display:inline-block;width:110px;height:34px}.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;transition:.3s;border-radius:34px;display:flex;align-items:center;justify-content:space-between;padding:0 12px}.slider:before{position:absolute;content:"";height:26px;width:48px;left:4px;bottom:4px;background:white;transition:.3s;border-radius:20px;box-shadow:0 2px 4px rgba(0,0,0,.2)}.slider-text-left,.slider-text-right{font-size:10px;font-weight:bold;color:white;z-index:1;pointer-events:none;text-transform:uppercase}
+input:checked+.slider-sys{background:#388e3c}input:checked+.slider-sys:before{transform:translateX(54px)}.slider-src{background:#1976d2}input:checked+.slider-src{background:#f57c00}input:checked+.slider-src:before{transform:translateX(54px)}input:checked+.slider-mode{background:#7b1fa2}input:checked+.slider-mode:before{transform:translateX(54px)}input:checked+.slider-sched{background:#00796b}input:checked+.slider-sched:before{transform:translateX(54px)}input:checked+.slider-set{background:#388e3c}input:checked+.slider-set:before{transform:translateX(54px)}.disabled-switch{opacity:.5;pointer-events:none}
+.set-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:15px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;transition:.3s}.set-card.active-set{border:2px solid #388e3c;box-shadow:0 0 10px rgba(56,142,60,.2)}.set-info{flex:1;min-width:150px}.set-name{font-size:17px;font-weight:bold;color:var(--txt-bold);margin-bottom:4px}.set-meta{font-size:13px;color:var(--txt-muted)}.set-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.timer-actions{display:flex;gap:6px;flex-wrap:wrap}
+.log{background:#111827;color:#d1fae5;padding:15px;border-radius:10px;height:150px;overflow-y:auto;font-family:monospace;font-size:12px}
+.connection-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}.connection{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:bold}.connection-dot{width:10px;height:10px;border-radius:50%;background:#d32f2f}.connection.connected .connection-dot{background:#388e3c;box-shadow:0 0 7px #388e3c}
+.schedule-note{color:var(--txt-muted);font-size:14px;margin-top:0}.hidden{display:none!important}
+.login-form .input-group{width:100%;margin-bottom:12px}.login-form input[type=text],.login-form input[type=password],.login-form input[type=time]{width:100%;padding:12px 14px;margin:0;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--txt)}
+@media(max-width:650px){body{padding:10px}.status-grid{grid-template-columns:1fr}.status-item-full{grid-column:span 1}.set-actions{width:100%}.set-actions .switch{margin-left:auto}}@media(max-width:430px){.switch{width:105px}.switch-label{font-size:14px}}
 </style>
 </head>
-
 <body>
-
-<header>
-    <h1>⚡ PowerIoT</h1>
-    <div id="connectionStatus" class="connection">
-        DISCONNECTED
-    </div>
-</header>
-
 <div class="container">
 
-    <!-- SYSTEM STATUS -->
-    <div class="card">
-        <h2>System Status</h2>
-
-        <div class="status-grid">
-
-            <div class="status-box">
-                <small>System</small>
-                <strong id="systemStatus">---</strong>
-            </div>
-
-            <div class="status-box">
-                <small>Active Source</small>
-                <strong id="sourceStatus">---</strong>
-            </div>
-
-            <div class="status-box">
-                <small>Mode</small>
-                <strong id="modeStatus">---</strong>
-            </div>
-
-            <div class="status-box">
-                <small>Scheduling</small>
-                <strong id="scheduleStatus">---</strong>
-            </div>
-
-        </div>
+<!-- EXACT MAIN ESP32 DASHBOARD LAYOUT -->
+<section id="dashboardPage">
+  <div class="header-row">
+    <h1 style="margin:0;">PowerIoT Dashboard</h1>
+    <button class="settings-btn" onclick="toggleMenu()">&#9881;</button>
+    <div id="settingsMenu" class="dropdown">
+      <a onclick="openSchedules()">Setup &amp; Schedules</a>
+      <a onclick="toggleDarkMode()" id="darkModeToggle">Toggle Dark Mode</a>
+      <a onclick="showDeviceInfo()">Device Connection</a>
     </div>
+  </div>
 
+  <div class="card"><div class="status-grid">
+    <div class="status-item"><div id="dotSystem" class="status-dot dot-off"></div><div class="status-info"><span class="status-name">System</span><span id="systemStatus" class="status-val">OFF</span></div></div>
+    <div class="status-item"><div id="dotSource" class="status-dot dot-grid"></div><div class="status-info"><span class="status-name">Power Source</span><span id="sourceStatus" class="status-val">GRID</span></div></div>
+    <div class="status-item"><div id="dotMode" class="status-dot dot-manual"></div><div class="status-info"><span class="status-name">Operation Mode</span><span id="modeStatus" class="status-val">MANUAL</span></div></div>
+    <div class="status-item"><div id="dotSchedule" class="status-dot dot-off"></div><div class="status-info"><span class="status-name">Scheduling</span><span id="scheduleStatus" class="status-val">INACTIVE</span></div></div>
+    <div class="status-item status-item-full"><div id="dotNext" class="status-dot dot-event-inactive"></div><div class="status-info"><span class="status-name">Next Scheduled Event</span><span id="nextSchedule" class="status-val">--</span></div></div>
+  </div>
+  <div class="connection-row"><span class="small">Remote MQTT Connection</span><span id="connectionStatus" class="connection"><span class="connection-dot"></span>DISCONNECTED</span></div>
+  </div>
 
-    <!-- CONTROLS -->
-    <div class="card">
+  <div class="card"><h2>Device Controls</h2>
+    <div id="scheduleWarning" style="display:none;color:#d32f2f;font-weight:bold;margin-bottom:8px;">WARNING: Controls are locked because Scheduling is Active.</div>
+    <div class="switch-row" id="rowSystem"><span class="switch-label">System On/Off</span><label class="switch"><input type="checkbox" id="sysToggle" onchange="toggleControl('system')"><span class="slider slider-sys"><span class="slider-text-left">OFF</span><span class="slider-text-right">ON</span></span></label></div>
+    <div class="switch-row" id="rowSource"><span class="switch-label">Power Source</span><label class="switch"><input type="checkbox" id="srcToggle" onchange="toggleControl('source')"><span class="slider slider-src"><span class="slider-text-left">GRID</span><span class="slider-text-right">SOLAR</span></span></label></div>
+    <div class="switch-row" id="rowMode"><span class="switch-label">Operation Mode</span><label class="switch"><input type="checkbox" id="modeToggle" onchange="toggleControl('mode')"><span class="slider slider-mode"><span class="slider-text-left">MAN</span><span class="slider-text-right">AUTO</span></span></label></div>
+    <div class="switch-row"><span class="switch-label">Time Scheduling</span><label class="switch"><input type="checkbox" id="schedToggle" onchange="toggleControl('scheduling')"><span class="slider slider-sched"><span class="slider-text-left">OFF</span><span class="slider-text-right">ON</span></span></label></div>
+  </div>
 
-        <h2>Remote Control</h2>
+  <div class="card"><h2>GRID UTILITY SENSOR</h2><div class="grid">
+    <div><div class="small">Voltage</div><div class="value" id="gridV">0.0 V</div></div><div><div class="small">Current</div><div class="value" id="gridI">0.00 A</div></div><div><div class="small">Power</div><div class="value" id="gridP">0.0 W</div></div><div><div class="small">Energy Accumulation</div><div class="value" id="gridE">0.000 kWh</div></div>
+  </div></div>
 
-        <div class="control-grid">
+  <div class="card"><h2>SOLAR INVERTER SENSOR</h2><div class="grid">
+    <div><div class="small">Voltage</div><div class="value" id="solarV">0.0 V</div></div><div><div class="small">Current</div><div class="value" id="solarI">0.00 A</div></div><div><div class="small">Power</div><div class="value" id="solarP">0.0 W</div></div><div><div class="small">Energy Accumulation</div><div class="value" id="solarE">0.000 kWh</div></div>
+  </div></div>
 
-            <button onclick="sendCommand('system','ON')" class="green">
-                SYSTEM ON
-            </button>
+  <div class="card" style="text-align:center"><button class="btn" style="width:100%;margin:0" onclick="openSchedules()">SETUP &amp; SCHEDULES</button></div>
+</section>
 
-            <button onclick="sendCommand('system','OFF')" class="off">
-                SYSTEM OFF
-            </button>
+<!-- REMOTE COPY OF ESP32 /settings PAGE -->
+<section id="schedulePage" class="hidden">
+  <div class="header-row"><div class="header-left"><button class="back-btn" onclick="showPage('dashboardPage')">&#8592;</button><h1 style="margin:0">Schedule Sets</h1></div><button class="settings-btn" onclick="toggleMenu2()">&#9881;</button><div id="scheduleMenu" class="dropdown"><a onclick="toggleDarkMode()">Toggle Dark Mode</a><a onclick="showDeviceInfo()">Device Connection</a></div></div>
+  <div class="card"><h2>My Schedule Sets</h2><p class="schedule-note">Create multiple sets for 24hr scheduling. Only <b>ONE</b> set can be active at a time.</p><div id="setsList"></div><div style="margin-top:15px;text-align:center"><button class="btn" onclick="addSet()">ADD NEW SET</button></div></div>
+</section>
 
-            <button onclick="sendCommand('source','SOLAR')" class="orange">
-                SOLAR
-            </button>
+<!-- REMOTE COPY OF ESP32 /set/view PAGE -->
+<section id="setViewPage" class="hidden">
+  <div class="header-row"><div class="header-left"><button class="back-btn" onclick="openSchedules()">&#8592;</button><h1 id="setViewTitle" style="margin:0">Schedule Set</h1></div><button class="settings-btn" onclick="toggleMenu3()">&#9881;</button><div id="setMenu" class="dropdown"><a onclick="toggleDarkMode()">Toggle Dark Mode</a><a onclick="showDeviceInfo()">Device Connection</a></div></div>
+  <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px"><div><div class="small">Status</div><div id="setViewStatus" style="font-size:20px;font-weight:bold">INACTIVE</div></div><div><button class="btn" onclick="renameCurrentSet()">RENAME</button></div></div></div>
+  <div class="card"><h2>Add Timer</h2><div class="login-form"><div class="input-group"><label style="font-weight:bold;display:block;margin-bottom:5px">Target Time:</label><input type="time" id="newTimerTime" required></div><div class="input-group"><label style="font-weight:bold;display:block;margin-bottom:5px">Trigger Source:</label><select id="newTimerSource" style="width:100%;margin:0;padding:12px 14px"><option value="GRID">GRID</option><option value="SOLAR">SOLAR</option></select></div><button class="btn" style="margin-left:0;margin-top:15px" onclick="addTimer()">ADD TIMER</button></div></div>
+  <div class="card"><h2>Active Timers</h2><div style="overflow-x:auto"><table><thead><tr><th>Time</th><th>Source</th><th>Actions</th></tr></thead><tbody id="timersBody"></tbody></table></div><p id="noTimers" style="text-align:center;color:var(--txt-muted);padding:20px 0;display:none">No timers yet. Add one above.</p></div>
+</section>
 
-            <button onclick="sendCommand('source','GRID')" class="gray">
-                GRID
-            </button>
-
-            <button onclick="sendCommand('mode','AUTO')" class="green">
-                AUTO
-            </button>
-
-            <button onclick="sendCommand('mode','MANUAL')" class="gray">
-                MANUAL
-            </button>
-
-            <button onclick="sendCommand('scheduling','ON')" class="green">
-                SCHEDULE ON
-            </button>
-
-            <button onclick="sendCommand('scheduling','OFF')" class="off">
-                SCHEDULE OFF
-            </button>
-
-        </div>
-
-    </div>
-
-
-    <!-- GRID MONITORING -->
-    <div class="card">
-
-        <h2>🔌 Grid Monitoring</h2>
-
-        <div class="monitor-grid">
-
-            <div class="monitor-box">
-                <h3>Voltage</h3>
-                <div class="value">
-                    <span id="gridV">0.00</span> V
-                </div>
-            </div>
-
-            <div class="monitor-box">
-                <h3>Current</h3>
-                <div class="value">
-                    <span id="gridI">0.00</span> A
-                </div>
-            </div>
-
-            <div class="monitor-box">
-                <h3>Power</h3>
-                <div class="value">
-                    <span id="gridP">0.00</span> W
-                </div>
-            </div>
-
-            <div class="monitor-box">
-                <h3>Energy</h3>
-                <div class="value">
-                    <span id="gridE">0.000</span> kWh
-                </div>
-            </div>
-
-        </div>
-
-    </div>
-
-
-    <!-- SOLAR MONITORING -->
-    <div class="card">
-
-        <h2>☀️ Solar Monitoring</h2>
-
-        <div class="monitor-grid">
-
-            <div class="monitor-box">
-                <h3>Voltage</h3>
-                <div class="value">
-                    <span id="solarV">0.00</span> V
-                </div>
-            </div>
-
-            <div class="monitor-box">
-                <h3>Current</h3>
-                <div class="value">
-                    <span id="solarI">0.00</span> A
-                </div>
-            </div>
-
-            <div class="monitor-box">
-                <h3>Power</h3>
-                <div class="value">
-                    <span id="solarP">0.00</span> W
-                </div>
-            </div>
-
-            <div class="monitor-box">
-                <h3>Energy</h3>
-                <div class="value">
-                    <span id="solarE">0.000</span> kWh
-                </div>
-            </div>
-
-        </div>
-
-    </div>
-
-
-    <!-- MQTT LOG -->
-    <div class="card">
-
-        <h2>MQTT Connection Log</h2>
-
-        <div id="log" class="log"></div>
-
-    </div>
-
+<div class="card"><h2>Remote Connection Log</h2><div id="log" class="log"></div></div>
 </div>
 
-<footer>
-    PowerIoT — IoT-Based Hybrid Solar-Grid Energy Manager
-</footer>
-
-
 <script>
-
-/* =========================================
-   HIVEMQ CLOUD
-========================================= */
-
-const MQTT_HOST =
-"640ee0af2af541f89544aaaba49f7711.s1.eu.hivemq.cloud";
-
-const MQTT_PORT = 8884;
-
-const MQTT_USERNAME = "poweriot_dashboard";
-
-/*
-   ILAGAY DITO ANG HIVEMQ PASSWORD MO.
-   HUWAG I-SHARE ANG PASSWORD SA CHAT.
-*/
-const MQTT_PASSWORD = "poweriot1234";
-
-
-/* =========================================
-   TOPICS
-========================================= */
-
-const TOPIC_SYSTEM =
-"poweriot/device01/command/system";
-
-const TOPIC_SOURCE =
-"poweriot/device01/command/source";
-
-const TOPIC_MODE =
-"poweriot/device01/command/mode";
-
-const TOPIC_SCHEDULING =
-"poweriot/device01/command/scheduling";
-
-const TOPIC_STATUS =
-"poweriot/device01/status";
-
-const TOPIC_SENSORS =
-"poweriot/device01/sensors";
-
-
-/* =========================================
-   MQTT CLIENT
-========================================= */
-
-let client;
-
-
-/* =========================================
-   LOG
-========================================= */
-
-function log(message) {
-
-    const box = document.getElementById("log");
-
-    const time = new Date().toLocaleTimeString();
-
-    box.innerHTML +=
-        `[${time}] ${message}<br>`;
-
-    box.scrollTop = box.scrollHeight;
-}
-
-
-/* =========================================
-   MQTT CONNECT
-========================================= */
-
-function connectMQTT() {
-
-    log("Connecting to HiveMQ Cloud...");
-
-    const clientId =
-        "PowerIoT-Web-" +
-        Math.random().toString(16).substring(2, 10);
-
-    client = mqtt.connect(
-        `wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`,
-        {
-            username: MQTT_USERNAME,
-            password: MQTT_PASSWORD,
-
-            clientId: clientId,
-
-            clean: true,
-
-            reconnectPeriod: 3000,
-
-            connectTimeout: 10000
-        }
-    );
-
-
-    /* CONNECTED */
-
-    client.on("connect", function() {
-
-        log("MQTT CONNECTED");
-
-        const status =
-            document.getElementById("connectionStatus");
-
-        status.textContent = "CONNECTED";
-
-        status.classList.add("connected");
-
-
-        client.subscribe(TOPIC_STATUS);
-
-        client.subscribe(TOPIC_SENSORS);
-
-        log("Subscribed to status");
-
-        log("Subscribed to sensors");
-
-    });
-
-
-    /* MESSAGE */
-
-    client.on("message", function(topic, message) {
-
-        const data =
-            message.toString();
-
-        log(
-            "RX " +
-            topic +
-            " → " +
-            data
-        );
-
-
-        try {
-
-            const json =
-                JSON.parse(data);
-
-
-            if(topic === TOPIC_STATUS) {
-
-                updateStatus(json);
-
-            }
-
-
-            if(topic === TOPIC_SENSORS) {
-
-                updateSensors(json);
-
-            }
-
-        }
-
-        catch(error) {
-
-            log("JSON ERROR");
-
-        }
-
-    });
-
-
-    /* ERROR */
-
-    client.on("error", function(error) {
-
-        log(
-            "MQTT ERROR: " +
-            error.message
-        );
-
-    });
-
-
-    /* DISCONNECT */
-
-    client.on("close", function() {
-
-        log("MQTT DISCONNECTED");
-
-        const status =
-            document.getElementById("connectionStatus");
-
-        status.textContent = "DISCONNECTED";
-
-        status.classList.remove("connected");
-
-    });
-
-}
-
-
-/* =========================================
-   UPDATE STATUS
-========================================= */
-
-function updateStatus(data) {
-
-    document.getElementById(
-        "systemStatus"
-    ).textContent =
-        data.systemOn ? "ON" : "OFF";
-
-
-    document.getElementById(
-        "sourceStatus"
-    ).textContent =
-        data.source || "---";
-
-
-    document.getElementById(
-        "modeStatus"
-    ).textContent =
-        data.mode || "---";
-
-
-    document.getElementById(
-        "scheduleStatus"
-    ).textContent =
-        data.scheduling ? "ON" : "OFF";
-
-}
-
-
-/* =========================================
-   UPDATE SENSOR DATA
-========================================= */
-
-function updateSensors(data) {
-
-    document.getElementById("gridV")
-        .textContent =
-        Number(data.gridV || 0).toFixed(2);
-
-    document.getElementById("gridI")
-        .textContent =
-        Number(data.gridI || 0).toFixed(2);
-
-    document.getElementById("gridP")
-        .textContent =
-        Number(data.gridP || 0).toFixed(2);
-
-    document.getElementById("gridE")
-        .textContent =
-        Number(data.gridE || 0).toFixed(3);
-
-
-    document.getElementById("solarV")
-        .textContent =
-        Number(data.solarV || 0).toFixed(2);
-
-    document.getElementById("solarI")
-        .textContent =
-        Number(data.solarI || 0).toFixed(2);
-
-    document.getElementById("solarP")
-        .textContent =
-        Number(data.solarP || 0).toFixed(2);
-
-    document.getElementById("solarE")
-        .textContent =
-        Number(data.solarE || 0).toFixed(3);
-
-}
-
-
-/* =========================================
-   SEND COMMAND
-========================================= */
-
-function sendCommand(type, value) {
-
-    if(!client || !client.connected) {
-
-        log("ERROR: MQTT not connected");
-
-        return;
-
-    }
-
-
-    let topic;
-
-
-    if(type === "system") {
-
-        topic = TOPIC_SYSTEM;
-
-    }
-
-    else if(type === "source") {
-
-        topic = TOPIC_SOURCE;
-
-    }
-
-    else if(type === "mode") {
-
-        topic = TOPIC_MODE;
-
-    }
-
-    else if(type === "scheduling") {
-
-        topic = TOPIC_SCHEDULING;
-
-    }
-
-
-    client.publish(
-        topic,
-        value,
-        {
-            qos: 0
-        }
-    );
-
-
-    log(
-        "TX " +
-        topic +
-        " → " +
-        value
-    );
-
-}
-
-
-/* =========================================
-   START
-========================================= */
-
-connectMQTT();
-
+const MQTT_HOST="640ee0af2af541f89544aaaba49f7711.s1.eu.hivemq.cloud";
+const MQTT_PORT=8884;
+const MQTT_USERNAME="poweriot_dashboard";
+const MQTT_PASSWORD='poweriot1234';
+const TOPIC_SYSTEM="poweriot/device01/command/system";
+const TOPIC_SOURCE="poweriot/device01/command/source";
+const TOPIC_MODE="poweriot/device01/command/mode";
+const TOPIC_SCHEDULING="poweriot/device01/command/scheduling";
+const TOPIC_STATUS="poweriot/device01/status";
+const TOPIC_SENSORS="poweriot/device01/sensors";
+const TOPIC_SCHEDULE="poweriot/device01/command/schedule";
+const TOPIC_SCHEDULE_STATE="poweriot/device01/schedule/state";
+const MAX_SETS=5,MAX_TIMERS=10;
+let client=null,currentSetId=-1,scheduleSets=Array.from({length:MAX_SETS},(_,i)=>({exists:false,isActive:false,name:'Set '+(i+1),timers:[]}));
+function log(m){const b=document.getElementById('log');b.innerHTML+='['+new Date().toLocaleTimeString()+'] '+m+'<br>';b.scrollTop=b.scrollHeight}
+function toggleMenu(){document.getElementById('settingsMenu').classList.toggle('show')}
+function toggleMenu2(){document.getElementById('scheduleMenu').classList.toggle('show')}
+function toggleMenu3(){document.getElementById('setMenu').classList.toggle('show')}
+window.onclick=e=>{if(!e.target.closest('.settings-btn')&&!e.target.closest('.dropdown'))document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'))}
+function toggleDarkMode(){document.documentElement.classList.toggle('dark-mode');localStorage.setItem('darkMode',document.documentElement.classList.contains('dark-mode')?'1':'0');document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'))}
+function showPage(id){['dashboardPage','schedulePage','setViewPage'].forEach(x=>document.getElementById(x).classList.add('hidden'));document.getElementById(id).classList.remove('hidden');window.scrollTo(0,0)}
+function openSchedules(){document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'));showPage('schedulePage');requestSchedules();}
+function showDeviceInfo(){document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'));alert('PowerIoT Remote Dashboard\n\nRemote connection: HiveMQ Cloud MQTT\nDevice: PowerIoT ESP32\nTopics: poweriot/device01/...')}
+function send(topic,value){if(!client||!client.connected){log('ERROR: MQTT not connected');return}client.publish(topic,value,{qos:0});log('TX '+topic+' → '+value)}
+function toggleControl(type){let v;if(type==='system')v=document.getElementById('sysToggle').checked?'ON':'OFF';else if(type==='source')v=document.getElementById('srcToggle').checked?'SOLAR':'GRID';else if(type==='mode')v=document.getElementById('modeToggle').checked?'AUTO':'MANUAL';else v=document.getElementById('schedToggle').checked?'ON':'OFF';send(type==='system'?TOPIC_SYSTEM:type==='source'?TOPIC_SOURCE:type==='mode'?TOPIC_MODE:TOPIC_SCHEDULING,v)}
+function updateStatus(d){let sys=!!d.systemOn,src=d.source||'GRID',mode=d.mode||'MANUAL',sched=!!d.scheduling;document.getElementById('systemStatus').textContent=sys?'ON':'OFF';document.getElementById('sysToggle').checked=sys;document.getElementById('dotSystem').className='status-dot '+(sys?'dot-on':'dot-off');document.getElementById('sourceStatus').textContent=src;document.getElementById('srcToggle').checked=src==='SOLAR';document.getElementById('dotSource').className='status-dot '+(src==='SOLAR'?'dot-solar':'dot-grid');document.getElementById('modeStatus').textContent=mode==='AUTO'?'AUTOMATIC':'MANUAL';document.getElementById('modeToggle').checked=mode==='AUTO';document.getElementById('dotMode').className='status-dot '+(mode==='AUTO'?'dot-auto':'dot-manual');document.getElementById('scheduleStatus').textContent=sched?'ACTIVE':'INACTIVE';document.getElementById('schedToggle').checked=sched;document.getElementById('dotSchedule').className='status-dot '+(sched?'dot-sched-on':'dot-off');['sysToggle','srcToggle','modeToggle'].forEach(id=>document.getElementById(id).disabled=sched);['rowSystem','rowSource','rowMode'].forEach(id=>document.getElementById(id).classList.toggle('disabled-switch',sched));document.getElementById('scheduleWarning').style.display=sched?'block':'none';updateNextEvent()}
+function updateSensors(d){document.getElementById('gridV').textContent=Number(d.gridV||0).toFixed(1)+' V';document.getElementById('gridI').textContent=Number(d.gridI||0).toFixed(2)+' A';document.getElementById('gridP').textContent=Number(d.gridP||0).toFixed(1)+' W';document.getElementById('gridE').textContent=Number(d.gridE||0).toFixed(3)+' kWh';document.getElementById('solarV').textContent=Number(d.solarV||0).toFixed(1)+' V';document.getElementById('solarI').textContent=Number(d.solarI||0).toFixed(2)+' A';document.getElementById('solarP').textContent=Number(d.solarP||0).toFixed(1)+' W';document.getElementById('solarE').textContent=Number(d.solarE||0).toFixed(3)+' kWh'}
+function parseSchedule(msg){if(msg==='END'){renderSets();updateNextEvent();return}let p=msg.split('|');if(p[0]==='SET'){let id=+p[1];if(id>=0&&id<MAX_SETS){scheduleSets[id].exists=p[2]==='1';scheduleSets[id].isActive=p[3]==='1';scheduleSets[id].name=p.slice(4).join('|')||('Set '+(id+1));if(!scheduleSets[id].timers)scheduleSets[id].timers=[]}}else if(p[0]==='TIMER'){let s=+p[1],t=+p[2];if(s>=0&&s<MAX_SETS&&t>=0&&t<MAX_TIMERS)scheduleSets[s].timers[t]={enabled:p[3]==='1',time:p[4],source:p[5]==='SOLAR'?'SOLAR':'GRID'}}}
+function requestSchedules(){if(client&&client.connected){scheduleSets=Array.from({length:MAX_SETS},(_,i)=>({exists:false,isActive:false,name:'Set '+(i+1),timers:[]}));send(TOPIC_SCHEDULE,'REQUEST')}}
+function renderSets(){const box=document.getElementById('setsList');box.innerHTML='';let any=false;scheduleSets.forEach((s,i)=>{if(!s.exists)return;any=true;let timers=s.timers.filter(x=>x&&x.enabled).length;let d=document.createElement('div');d.className='set-card'+(s.isActive?' active-set':'');d.innerHTML='<div class="set-info"><div class="set-name">'+esc(s.name)+'</div><div class="set-meta"><span style="color:'+(s.isActive?'#388e3c':'var(--txt-muted)')+';font-weight:bold">'+(s.isActive?'ACTIVE':'Inactive')+'</span> - '+timers+' timer'+(timers!==1?'s':'')+'</div></div><div class="set-actions"><button class="btn" style="padding:8px 12px;font-size:12px" onclick="renameSet('+i+')">RENAME</button><button class="btn" style="padding:8px 12px;font-size:12px;background:#388e3c" onclick="openSet('+i+')">OPEN</button><button class="danger" style="padding:8px 12px;font-size:12px" onclick="deleteSet('+i+')">DELETE</button><label class="switch"><input type="checkbox" '+(s.isActive?'checked':'')+' onchange="toggleSet('+i+',this.checked)"><span class="slider slider-set"><span class="slider-text-left">OFF</span><span class="slider-text-right">ON</span></span></label></div>';box.appendChild(d)});if(!any)box.innerHTML='<p style="text-align:center;color:var(--txt-muted);padding:25px 0">No schedule sets yet.<br>Click <b>ADD NEW SET</b> below to create one.</p>'}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function addSet(){send(TOPIC_SCHEDULE,'SET_ADD')}
+function deleteSet(id){if(confirm('Delete this set?'))send(TOPIC_SCHEDULE,'SET_DELETE|'+id)}
+function toggleSet(id,on){send(TOPIC_SCHEDULE,'SET_TOGGLE|'+id+'|'+(on?'ON':'OFF'))}
+function renameSet(id){let n=prompt('Set Name (max 32 chars):',scheduleSets[id].name);if(n!==null){n=n.trim();if(!n)n='Untitled';send(TOPIC_SCHEDULE,'SET_RENAME|'+id+'|'+n.slice(0,32))}}
+function openSet(id){currentSetId=id;document.getElementById('setViewTitle').textContent=scheduleSets[id].name;document.getElementById('setViewStatus').textContent=scheduleSets[id].isActive?'ACTIVE':'INACTIVE';document.getElementById('setViewStatus').style.color=scheduleSets[id].isActive?'#388e3c':'var(--txt-muted)';renderTimers();showPage('setViewPage')}
+function renameCurrentSet(){renameSet(currentSetId)}
+function addTimer(){let time=document.getElementById('newTimerTime').value,source=document.getElementById('newTimerSource').value;if(!time)return alert('Select a target time.');let dup=scheduleSets[currentSetId].timers.some(x=>x&&x.enabled&&x.time===time);if(dup)return alert('Duplicate timer at this time.');send(TOPIC_SCHEDULE,'TIMER_ADD|'+currentSetId+'|'+time+'|'+source);document.getElementById('newTimerTime').value=''}
+function editTimer(id){let t=scheduleSets[currentSetId].timers[id];if(!t||!t.enabled)return;let time=prompt('Target Time (HH:MM):',t.time);if(time===null)return;let source=prompt('Trigger Source (GRID or SOLAR):',t.source);if(source===null)return;source=source.toUpperCase();if(!/^\d{2}:\d{2}$/.test(time)||+time.slice(0,2)>23||+time.slice(3)>59)return alert('Invalid time.');if(source!=='GRID'&&source!=='SOLAR')return alert('Source must be GRID or SOLAR.');send(TOPIC_SCHEDULE,'TIMER_EDIT|'+currentSetId+'|'+id+'|'+time+'|'+source)}
+function deleteTimer(id){if(confirm('Delete this timer?'))send(TOPIC_SCHEDULE,'TIMER_DELETE|'+currentSetId+'|'+id)}
+function renderTimers(){let body=document.getElementById('timersBody');body.innerHTML='';let arr=scheduleSets[currentSetId].timers.map((t,i)=>({t,i})).filter(x=>x.t&&x.t.enabled).sort((a,b)=>a.t.time.localeCompare(b.t.time));document.getElementById('noTimers').style.display=arr.length?'none':'block';arr.forEach(x=>{let tr=document.createElement('tr');tr.innerHTML='<td><b>'+esc(x.t.time)+'</b></td><td>'+esc(x.t.source)+'</td><td><div class="timer-actions"><button class="btn" style="padding:6px 12px;font-size:12px" onclick="editTimer('+x.i+')">EDIT</button><button class="danger" style="padding:6px 12px;font-size:12px" onclick="deleteTimer('+x.i+')">DELETE</button></div></td>';body.appendChild(tr)})}
+function updateNextEvent(){let active=scheduleSets.find(s=>s.exists&&s.isActive);let el=document.getElementById('nextSchedule'),dot=document.getElementById('dotNext');if(!active){el.textContent='--';dot.className='status-dot dot-event-inactive';return}let now=new Date(),cur=now.getHours()*60+now.getMinutes(),best=null;active.timers.filter(t=>t&&t.enabled).forEach(t=>{let [h,m]=t.time.split(':').map(Number),v=h*60+m;if(v>cur&&(!best||v<best.v))best={v,time:t.time,source:t.source}});if(!best){active.timers.filter(t=>t&&t.enabled).forEach(t=>{let [h,m]=t.time.split(':').map(Number),v=h*60+m;if(!best||v<best.v)best={v,time:t.time,source:t.source}})}el.textContent=best?best.time+' → '+best.source:'--';dot.className='status-dot '+(best?'dot-event-active':'dot-event-inactive')}
+function connectMQTT(){log('Connecting to HiveMQ Cloud...');let id='PowerIoT-Web-'+Math.random().toString(16).slice(2,10);client=mqtt.connect(`wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`,{username:MQTT_USERNAME,password:MQTT_PASSWORD,clientId:id,clean:true,reconnectPeriod:3000,connectTimeout:10000});client.on('connect',()=>{log('MQTT CONNECTED');let s=document.getElementById('connectionStatus');s.innerHTML='<span class="connection-dot"></span>CONNECTED';s.classList.add('connected');client.subscribe(TOPIC_STATUS);client.subscribe(TOPIC_SENSORS);client.subscribe(TOPIC_SCHEDULE_STATE);log('Subscribed to status');log('Subscribed to sensors');log('Subscribed to schedule state');requestSchedules()});client.on('message',(topic,message)=>{let data=message.toString();log('RX '+topic+' → '+data);if(topic===TOPIC_SCHEDULE_STATE){parseSchedule(data);return}try{let j=JSON.parse(data);if(topic===TOPIC_STATUS)updateStatus(j);if(topic===TOPIC_SENSORS)updateSensors(j)}catch(e){log('JSON ERROR')}});client.on('error',e=>log('MQTT ERROR: '+e.message));client.on('close',()=>{log('MQTT DISCONNECTED');let s=document.getElementById('connectionStatus');s.innerHTML='<span class="connection-dot"></span>DISCONNECTED';s.classList.remove('connected')})}
+setInterval(updateNextEvent,30000);connectMQTT();
 </script>
-
-</body>
-</html>
+</body></html>
