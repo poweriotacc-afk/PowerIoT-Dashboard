@@ -35,21 +35,99 @@ input:checked+.slider-sys{background:#388e3c}input:checked+.slider-sys:before{tr
 .connection-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}.connection{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:bold}.connection-dot{width:10px;height:10px;border-radius:50%;background:#d32f2f}.connection.connected .connection-dot{background:#388e3c;box-shadow:0 0 7px #388e3c}
 .schedule-note{color:var(--txt-muted);font-size:14px;margin-top:0}.hidden{display:none!important}
 .login-form .input-group{width:100%;margin-bottom:12px}.login-form input[type=text],.login-form input[type=password],.login-form input[type=time]{width:100%;padding:12px 14px;margin:0;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--txt)}
-@media(max-width:650px){body{padding:10px}.status-grid{grid-template-columns:1fr}.status-item-full{grid-column:span 1}.set-actions{width:100%}.set-actions .switch{margin-left:auto}}@media(max-width:430px){.switch{width:105px}.switch-label{font-size:14px}}
+
+/* LOGIN - MATCH ESP32 WEB SERVER */
+.login-page{min-height:calc(100vh - 30px);display:flex;align-items:flex-start;justify-content:center;padding-top:50px}
+.login-card{width:100%;max-width:380px;padding:25px;box-sizing:border-box}
+.login-title{text-align:center;margin-bottom:5px}.login-subtitle{text-align:center;color:var(--txt-muted);margin-bottom:20px;font-weight:normal}
+.login-form .input-group{width:100%;margin-bottom:12px;box-sizing:border-box}
+.login-form input[type=text],.login-form input[type=password]{width:100%;box-sizing:border-box;padding:12px 14px;margin:0;border:1px solid var(--border);border-radius:8px;font-size:15px;background:var(--card);color:var(--txt);outline:none;transition:border-color .2s}
+.login-form input:focus{border-color:#1976d2}.password-container{position:relative;width:100%;box-sizing:border-box}.password-container input{padding-right:45px!important}
+.eye-icon{position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--txt-muted);display:flex;align-items:center;justify-content:center;width:30px;height:30px;user-select:none;transition:color .2s}.eye-icon svg{width:22px;height:22px;fill:currentColor}.eye-icon:hover{color:#1976d2}
+.login-error{margin:10px 0 0;padding:10px 14px;border-radius:8px;background:#fdecea;color:#c62828;border:1px solid #f5c6cb;font-size:14px;font-weight:bold;text-align:center;min-height:42px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;visibility:hidden;opacity:0;transition:opacity .2s}.login-error.visible{visibility:visible;opacity:1;animation:shake .35s ease-in-out}
+html.dark-mode .login-error{background:#3b1a1a;color:#ff6b6b;border-color:#5c2a2a}@keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}100%{transform:translateX(0)}}
+.login-button{width:100%;margin-top:15px;margin-left:0;margin-right:0;padding:12px}.login-note{text-align:center;color:var(--txt-muted);font-size:12px;margin-top:14px}
+
+/* RENAME SET PAGE - KEEP SAME ESP32-STYLE FORM WIDTH ON PC AND MOBILE */
+#renameSetPage .login-form{width:100%;max-width:380px;margin:0 auto}
+#renameSetPage .login-button{display:block;width:100%}
+#renameSetInput{width:100%;box-sizing:border-box}
+
+/* RESPONSIVE LAYOUT - SAME POSITIONING ON PC AND MOBILE */
+.status-grid{grid-template-columns:1fr 1fr}
+.status-item-full{grid-column:span 2}
+.switch{width:110px;height:34px;flex:0 0 110px}
+.switch-label{font-size:16px}
+.set-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}
+.set-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:nowrap;gap:6px}
+@media(max-width:650px){
+  body{padding:10px}
+  .container{width:100%;max-width:900px;margin:0 auto}
+  .card{padding:20px;margin-bottom:15px}
+  .header-row{margin-bottom:15px}
+  .status-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .status-item{padding:10px 10px;min-width:0}
+  .status-name{font-size:11px}
+  .status-val{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .switch-row{padding:14px 0;gap:10px}
+  .switch-label{font-size:15px;line-height:1.25}
+  .switch{width:105px;height:34px;flex-basis:105px}
+  .slider:before{width:45px}
+  input:checked+.slider-sys:before,input:checked+.slider-src:before,input:checked+.slider-mode:before,input:checked+.slider-sched:before,input:checked+.slider-set:before{transform:translateX(52px)}
+  .set-card{grid-template-columns:minmax(0,1fr) auto;padding:15px}
+  .set-actions{justify-content:flex-end;gap:4px}
+  .set-actions button{margin:2px;padding:10px 12px;font-size:14px}
+  .dropdown{right:0;min-width:210px}
+  table{min-width:520px}
+  .table-wrap{overflow-x:auto;width:100%}
+}
+@media(max-width:430px){
+  .switch-label{font-size:14px}
+  .switch{width:100px;flex-basis:100px}
+  .slider:before{width:43px}
+  input:checked+.slider-sys:before,input:checked+.slider-src:before,input:checked+.slider-mode:before,input:checked+.slider-sched:before,input:checked+.slider-set:before{transform:translateX(49px)}
+  .status-item{padding:9px 8px}
+  .status-val{font-size:14px}
+  .set-card{grid-template-columns:1fr;}
+  .set-actions{justify-content:flex-start;flex-wrap:wrap}
+}
 </style>
 </head>
 <body>
 <div class="container">
 
+<!-- LOGIN PAGE - MATCHED TO ESP32 LOGIN -->
+<section id="loginPage" class="login-page">
+  <div class="card login-card">
+    <h1 class="login-title">PowerIoT</h1>
+    <h3 class="login-subtitle">Device Login</h3>
+    <form id="loginForm" class="login-form" onsubmit="return handleRemoteLogin(event)">
+      <div class="input-group"><input type="text" id="loginUsername" placeholder="Username" autocomplete="username" required></div>
+      <div class="input-group">
+        <div class="password-container">
+          <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required>
+          <span class="eye-icon" onclick="toggleLoginPassword()">
+            <svg id="eyeOpen" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+            <svg id="eyeClosed" style="display:none" viewBox="0 0 24 24"><path d="M2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2z"/></svg>
+          </span>
+        </div>
+      </div>
+      <div id="loginError" class="login-error">&nbsp;</div>
+      <button class="btn login-button" type="submit">LOGIN</button>
+    </form>
+  </div>
+</section>
+
 <!-- EXACT MAIN ESP32 DASHBOARD LAYOUT -->
-<section id="dashboardPage">
+<section id="dashboardPage" class="hidden">
   <div class="header-row">
     <h1 style="margin:0;">PowerIoT Dashboard</h1>
     <button class="settings-btn" onclick="toggleMenu()">&#9881;</button>
     <div id="settingsMenu" class="dropdown">
-      <a onclick="openSchedules()">Setup &amp; Schedules</a>
+      <a onclick="openCredentials()">Device Credentials</a>
       <a onclick="toggleDarkMode()" id="darkModeToggle">Toggle Dark Mode</a>
       <a onclick="showDeviceInfo()">Device Connection</a>
+      <a onclick="remoteLogout()">Logout</a>
     </div>
   </div>
 
@@ -83,14 +161,53 @@ input:checked+.slider-sys{background:#388e3c}input:checked+.slider-sys:before{tr
 </section>
 
 <!-- REMOTE COPY OF ESP32 /settings PAGE -->
+<!-- DEVICE CREDENTIALS PAGE -->
+<section id="credentialsPage" class="hidden">
+  <div class="header-row">
+    <div class="header-left"><button class="back-btn" onclick="backToDashboard()">&#8592;</button><h1 style="margin:0">Device Credentials</h1></div>
+  </div>
+  <div class="card">
+    <h2>Change Username / Password</h2>
+    <p class="schedule-note">Change the login credentials used by this remote web dashboard.</p>
+    <form onsubmit="return saveRemoteCredentials(event)" class="login-form">
+      <div class="input-group"><input id="newUsername" type="text" placeholder="New Username" required maxlength="32"></div>
+      <div class="input-group"><div class="password-container"><input id="newPassword" type="password" placeholder="New Password" required minlength="4" maxlength="64"></div></div>
+      <div class="input-group"><div class="password-container"><input id="confirmPassword" type="password" placeholder="Confirm Password" required minlength="4" maxlength="64"></div></div>
+      <div id="credentialMessage" class="login-error">&nbsp;</div>
+      <button class="btn login-button" type="submit">SAVE CREDENTIALS</button>
+    </form>
+  </div>
+</section>
+
 <section id="schedulePage" class="hidden">
-  <div class="header-row"><div class="header-left"><button class="back-btn" onclick="showPage('dashboardPage')">&#8592;</button><h1 style="margin:0">Schedule Sets</h1></div><button class="settings-btn" onclick="toggleMenu2()">&#9881;</button><div id="scheduleMenu" class="dropdown"><a onclick="toggleDarkMode()">Toggle Dark Mode</a><a onclick="showDeviceInfo()">Device Connection</a></div></div>
+  <div class="header-row"><div class="header-left"><button class="back-btn" onclick="showPage('dashboardPage')">&#8592;</button><h1 style="margin:0">Schedule Sets</h1></div><button class="settings-btn" onclick="toggleMenu2()">&#9881;</button><div id="scheduleMenu" class="dropdown"><a onclick="openCredentials()">Device Credentials</a><a onclick="toggleDarkMode()" id="darkModeToggleSchedule">Toggle Dark Mode</a><a onclick="showDeviceInfo()">Device Connection</a><a onclick="remoteLogout()">Logout</a></div></div>
   <div class="card"><h2>My Schedule Sets</h2><p class="schedule-note">Create multiple sets for 24hr scheduling. Only <b>ONE</b> set can be active at a time.</p><div id="setsList"></div><div style="margin-top:15px;text-align:center"><button class="btn" onclick="addSet()">ADD NEW SET</button></div></div>
+</section>
+
+<!-- RENAME SET PAGE - MATCH ESP32 STYLE -->
+<section id="renameSetPage" class="hidden">
+  <div class="header-row">
+    <div class="header-left">
+      <button class="back-btn" onclick="cancelRenameSet()">&#8592;</button>
+      <h1 style="margin:0">Rename Set</h1>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Set Name</h2>
+    <p class="schedule-note">Enter a new name for this schedule set.</p>
+    <form onsubmit="return saveRenameSet(event)" class="login-form">
+      <div class="input-group">
+        <input id="renameSetInput" type="text" placeholder="Set Name" maxlength="32" required>
+      </div>
+      <div id="renameSetMessage" class="login-error">&nbsp;</div>
+      <button class="btn login-button" type="submit">SAVE NAME</button>
+    </form>
+  </div>
 </section>
 
 <!-- REMOTE COPY OF ESP32 /set/view PAGE -->
 <section id="setViewPage" class="hidden">
-  <div class="header-row"><div class="header-left"><button class="back-btn" onclick="openSchedules()">&#8592;</button><h1 id="setViewTitle" style="margin:0">Schedule Set</h1></div><button class="settings-btn" onclick="toggleMenu3()">&#9881;</button><div id="setMenu" class="dropdown"><a onclick="toggleDarkMode()">Toggle Dark Mode</a><a onclick="showDeviceInfo()">Device Connection</a></div></div>
+  <div class="header-row"><div class="header-left"><button class="back-btn" onclick="openSchedules()">&#8592;</button><h1 id="setViewTitle" style="margin:0">Schedule Set</h1></div><button class="settings-btn" onclick="toggleMenu3()">&#9881;</button><div id="setMenu" class="dropdown"><a onclick="openCredentials()">Device Credentials</a><a onclick="toggleDarkMode()" id="darkModeToggleSet">Toggle Dark Mode</a><a onclick="showDeviceInfo()">Device Connection</a><a onclick="remoteLogout()">Logout</a></div></div>
   <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px"><div><div class="small">Status</div><div id="setViewStatus" style="font-size:20px;font-weight:bold">INACTIVE</div></div><div><button class="btn" onclick="renameCurrentSet()">RENAME</button></div></div></div>
   <div class="card"><h2>Add Timer</h2><div class="login-form"><div class="input-group"><label style="font-weight:bold;display:block;margin-bottom:5px">Target Time:</label><input type="time" id="newTimerTime" required></div><div class="input-group"><label style="font-weight:bold;display:block;margin-bottom:5px">Trigger Source:</label><select id="newTimerSource" style="width:100%;margin:0;padding:12px 14px"><option value="GRID">GRID</option><option value="SOLAR">SOLAR</option></select></div><button class="btn" style="margin-left:0;margin-top:15px" onclick="addTimer()">ADD TIMER</button></div></div>
   <div class="card"><h2>Active Timers</h2><div style="overflow-x:auto"><table><thead><tr><th>Time</th><th>Source</th><th>Actions</th></tr></thead><tbody id="timersBody"></tbody></table></div><p id="noTimers" style="text-align:center;color:var(--txt-muted);padding:20px 0;display:none">No timers yet. Add one above.</p></div>
@@ -119,8 +236,27 @@ function toggleMenu(){document.getElementById('settingsMenu').classList.toggle('
 function toggleMenu2(){document.getElementById('scheduleMenu').classList.toggle('show')}
 function toggleMenu3(){document.getElementById('setMenu').classList.toggle('show')}
 window.onclick=e=>{if(!e.target.closest('.settings-btn')&&!e.target.closest('.dropdown'))document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'))}
-function toggleDarkMode(){document.documentElement.classList.toggle('dark-mode');localStorage.setItem('darkMode',document.documentElement.classList.contains('dark-mode')?'1':'0');document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'))}
-function showPage(id){['dashboardPage','schedulePage','setViewPage'].forEach(x=>document.getElementById(x).classList.add('hidden'));document.getElementById(id).classList.remove('hidden');window.scrollTo(0,0)}
+function updateDarkModeLabels(){const dark=document.documentElement.classList.contains('dark-mode');const text=dark?'Toggle Light Mode':'Toggle Dark Mode';['darkModeToggle','darkModeToggleSchedule','darkModeToggleSet'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=text})}
+function toggleDarkMode(){document.documentElement.classList.toggle('dark-mode');const dark=document.documentElement.classList.contains('dark-mode');localStorage.setItem('darkMode',dark?'1':'0');updateDarkModeLabels();document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'))}
+const AUTH_KEY='poweriotRemoteAuthV1';
+const SESSION_KEY='poweriotRemoteSessionV1';
+const SESSION_MS=30*60*1000;
+async function sha256(text){const data=new TextEncoder().encode(text);const hash=await crypto.subtle.digest('SHA-256',data);return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('')}
+async function getStoredAuth(){let a=localStorage.getItem(AUTH_KEY);if(!a){a=JSON.stringify({username:'admin',passwordHash:await sha256('poweriot123')});localStorage.setItem(AUTH_KEY,a)}return JSON.parse(a)}
+function sessionValid(){try{const s=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');return !!s&&s.loggedIn===true&&(Date.now()-s.time)<SESSION_MS}catch(e){return false}}
+function setSession(){localStorage.setItem(SESSION_KEY,JSON.stringify({loggedIn:true,time:Date.now()}))}
+function clearSession(){localStorage.removeItem(SESSION_KEY)}
+function showLogin(msg){showPage('loginPage');const e=document.getElementById('loginError');e.textContent=msg||'\u00a0';e.classList.toggle('visible',!!msg);document.getElementById('loginPassword').value='';}
+function showDashboard(){showPage('dashboardPage')}
+async function handleRemoteLogin(e){e.preventDefault();const u=document.getElementById('loginUsername').value.trim(),p=document.getElementById('loginPassword').value,a=await getStoredAuth(),h=await sha256(p),box=document.getElementById('loginError');if(u===a.username&&h===a.passwordHash){setSession();box.classList.remove('visible');showDashboard();startMQTT();return false}box.textContent=u!==a.username?'Incorrect username':'Incorrect password';box.classList.add('visible');return false}
+function toggleLoginPassword(){const p=document.getElementById('loginPassword'),o=document.getElementById('eyeOpen'),c=document.getElementById('eyeClosed');if(p.type==='password'){p.type='text';o.style.display='none';c.style.display='block'}else{p.type='password';o.style.display='block';c.style.display='none'}}
+async function openCredentials(){document.getElementById('settingsMenu').classList.remove('show');const a=await getStoredAuth();document.getElementById('newUsername').value=a.username;showPage('credentialsPage')}
+async function saveRemoteCredentials(e){e.preventDefault();const u=document.getElementById('newUsername').value.trim(),p=document.getElementById('newPassword').value,c=document.getElementById('confirmPassword').value,m=document.getElementById('credentialMessage');m.style.background='';m.style.color='';m.style.borderColor='';if(!u||p.length<4||p!==c){m.textContent=p!==c?'Passwords do not match':'Please complete all fields. Password must be at least 4 characters.';m.classList.add('visible');return false}localStorage.setItem(AUTH_KEY,JSON.stringify({username:u,passwordHash:await sha256(p)}));m.textContent='Credentials saved successfully.';m.classList.add('visible');m.style.background='#e8f5e9';m.style.color='#2e7d32';m.style.borderColor='#a5d6a7';setTimeout(()=>showDashboard(),900);return false}
+function remoteLogout(){document.getElementById('settingsMenu').classList.remove('show');clearSession();if(client){try{client.end(true)}catch(e){}client=null}showLogin('')}
+function backToDashboard(){showDashboard()}
+function startMQTT(){if(client&&client.connected)return;connectMQTT()}
+
+function showPage(id){['dashboardPage','schedulePage','setViewPage','renameSetPage','credentialsPage','loginPage'].forEach(x=>document.getElementById(x).classList.add('hidden'));document.getElementById(id).classList.remove('hidden');window.scrollTo(0,0)}
 function openSchedules(){document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'));showPage('schedulePage');requestSchedules();}
 function showDeviceInfo(){document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'));alert('PowerIoT Remote Dashboard\n\nRemote connection: HiveMQ Cloud MQTT\nDevice: PowerIoT ESP32\nTopics: poweriot/device01/...')}
 function send(topic,value){if(!client||!client.connected){log('ERROR: MQTT not connected');return}client.publish(topic,value,{qos:0});log('TX '+topic+' → '+value)}
@@ -134,15 +270,55 @@ function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','
 function addSet(){send(TOPIC_SCHEDULE,'SET_ADD')}
 function deleteSet(id){if(confirm('Delete this set?'))send(TOPIC_SCHEDULE,'SET_DELETE|'+id)}
 function toggleSet(id,on){send(TOPIC_SCHEDULE,'SET_TOGGLE|'+id+'|'+(on?'ON':'OFF'))}
-function renameSet(id){let n=prompt('Set Name (max 32 chars):',scheduleSets[id].name);if(n!==null){n=n.trim();if(!n)n='Untitled';send(TOPIC_SCHEDULE,'SET_RENAME|'+id+'|'+n.slice(0,32))}}
+function renameSet(id){
+  if(id<0 || id>=MAX_SETS || !scheduleSets[id].exists)return;
+  currentSetId=id;
+  document.getElementById('renameSetInput').value=scheduleSets[id].name;
+  const m=document.getElementById('renameSetMessage');
+  m.textContent='\u00a0';
+  m.classList.remove('visible');
+  showPage('renameSetPage');
+  setTimeout(()=>document.getElementById('renameSetInput').focus(),50);
+}
+function saveRenameSet(e){
+  e.preventDefault();
+  const input=document.getElementById('renameSetInput');
+  const m=document.getElementById('renameSetMessage');
+  let n=input.value.trim();
+  if(!n){
+    m.textContent='Please enter a set name.';
+    m.classList.add('visible');
+    return false;
+  }
+  n=n.slice(0,32);
+  send(TOPIC_SCHEDULE,'SET_RENAME|'+currentSetId+'|'+n);
+  m.textContent='Saving name...';
+  m.classList.add('visible');
+  m.style.background='#e8f5e9';
+  m.style.color='#2e7d32';
+  m.style.borderColor='#a5d6a7';
+  setTimeout(()=>{
+    showPage('schedulePage');
+    requestSchedules();
+  },450);
+  return false;
+}
+function cancelRenameSet(){
+  if(currentSetId>=0){
+    showPage('schedulePage');
+    requestSchedules();
+  }else{
+    showPage('schedulePage');
+  }
+}
 function openSet(id){currentSetId=id;document.getElementById('setViewTitle').textContent=scheduleSets[id].name;document.getElementById('setViewStatus').textContent=scheduleSets[id].isActive?'ACTIVE':'INACTIVE';document.getElementById('setViewStatus').style.color=scheduleSets[id].isActive?'#388e3c':'var(--txt-muted)';renderTimers();showPage('setViewPage')}
-function renameCurrentSet(){renameSet(currentSetId)}
+function renameCurrentSet(){if(currentSetId>=0)renameSet(currentSetId)}
 function addTimer(){let time=document.getElementById('newTimerTime').value,source=document.getElementById('newTimerSource').value;if(!time)return alert('Select a target time.');let dup=scheduleSets[currentSetId].timers.some(x=>x&&x.enabled&&x.time===time);if(dup)return alert('Duplicate timer at this time.');send(TOPIC_SCHEDULE,'TIMER_ADD|'+currentSetId+'|'+time+'|'+source);document.getElementById('newTimerTime').value=''}
 function editTimer(id){let t=scheduleSets[currentSetId].timers[id];if(!t||!t.enabled)return;let time=prompt('Target Time (HH:MM):',t.time);if(time===null)return;let source=prompt('Trigger Source (GRID or SOLAR):',t.source);if(source===null)return;source=source.toUpperCase();if(!/^\d{2}:\d{2}$/.test(time)||+time.slice(0,2)>23||+time.slice(3)>59)return alert('Invalid time.');if(source!=='GRID'&&source!=='SOLAR')return alert('Source must be GRID or SOLAR.');send(TOPIC_SCHEDULE,'TIMER_EDIT|'+currentSetId+'|'+id+'|'+time+'|'+source)}
 function deleteTimer(id){if(confirm('Delete this timer?'))send(TOPIC_SCHEDULE,'TIMER_DELETE|'+currentSetId+'|'+id)}
 function renderTimers(){let body=document.getElementById('timersBody');body.innerHTML='';let arr=scheduleSets[currentSetId].timers.map((t,i)=>({t,i})).filter(x=>x.t&&x.t.enabled).sort((a,b)=>a.t.time.localeCompare(b.t.time));document.getElementById('noTimers').style.display=arr.length?'none':'block';arr.forEach(x=>{let tr=document.createElement('tr');tr.innerHTML='<td><b>'+esc(x.t.time)+'</b></td><td>'+esc(x.t.source)+'</td><td><div class="timer-actions"><button class="btn" style="padding:6px 12px;font-size:12px" onclick="editTimer('+x.i+')">EDIT</button><button class="danger" style="padding:6px 12px;font-size:12px" onclick="deleteTimer('+x.i+')">DELETE</button></div></td>';body.appendChild(tr)})}
 function updateNextEvent(){let active=scheduleSets.find(s=>s.exists&&s.isActive);let el=document.getElementById('nextSchedule'),dot=document.getElementById('dotNext');if(!active){el.textContent='--';dot.className='status-dot dot-event-inactive';return}let now=new Date(),cur=now.getHours()*60+now.getMinutes(),best=null;active.timers.filter(t=>t&&t.enabled).forEach(t=>{let [h,m]=t.time.split(':').map(Number),v=h*60+m;if(v>cur&&(!best||v<best.v))best={v,time:t.time,source:t.source}});if(!best){active.timers.filter(t=>t&&t.enabled).forEach(t=>{let [h,m]=t.time.split(':').map(Number),v=h*60+m;if(!best||v<best.v)best={v,time:t.time,source:t.source}})}el.textContent=best?best.time+' → '+best.source:'--';dot.className='status-dot '+(best?'dot-event-active':'dot-event-inactive')}
 function connectMQTT(){log('Connecting to HiveMQ Cloud...');let id='PowerIoT-Web-'+Math.random().toString(16).slice(2,10);client=mqtt.connect(`wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`,{username:MQTT_USERNAME,password:MQTT_PASSWORD,clientId:id,clean:true,reconnectPeriod:3000,connectTimeout:10000});client.on('connect',()=>{log('MQTT CONNECTED');let s=document.getElementById('connectionStatus');s.innerHTML='<span class="connection-dot"></span>CONNECTED';s.classList.add('connected');client.subscribe(TOPIC_STATUS);client.subscribe(TOPIC_SENSORS);client.subscribe(TOPIC_SCHEDULE_STATE);log('Subscribed to status');log('Subscribed to sensors');log('Subscribed to schedule state');requestSchedules()});client.on('message',(topic,message)=>{let data=message.toString();log('RX '+topic+' → '+data);if(topic===TOPIC_SCHEDULE_STATE){parseSchedule(data);return}try{let j=JSON.parse(data);if(topic===TOPIC_STATUS)updateStatus(j);if(topic===TOPIC_SENSORS)updateSensors(j)}catch(e){log('JSON ERROR')}});client.on('error',e=>log('MQTT ERROR: '+e.message));client.on('close',()=>{log('MQTT DISCONNECTED');let s=document.getElementById('connectionStatus');s.innerHTML='<span class="connection-dot"></span>DISCONNECTED';s.classList.remove('connected')})}
-setInterval(updateNextEvent,30000);connectMQTT();
+setInterval(updateNextEvent,30000);window.addEventListener('load',async()=>{if(localStorage.getItem('darkMode')==='1')document.documentElement.classList.add('dark-mode');updateDarkModeLabels();if(sessionValid()){showDashboard();startMQTT()}else{showLogin('')}});
 </script>
 </body></html>
