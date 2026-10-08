@@ -62,6 +62,22 @@ html.dark-mode .login-error{background:#3b1a1a;color:#ff6b6b;border-color:#5c2a2
 .set-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:nowrap;gap:6px}
 @media(max-width:650px){
   body{padding:10px}
+  /* Schedule Sets: keep the set information on top and move all controls below it */
+  .set-card{display:flex;flex-direction:column;align-items:stretch;gap:12px}
+  .set-info{width:100%;min-width:0}
+  .set-actions{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;align-items:center}
+  .set-actions button{width:100%;margin:0;padding:10px 6px;font-size:13px}
+  .set-actions .switch{grid-column:1 / -1;justify-self:center;margin-top:2px}
+  /* Active Timers: fit the table to the phone screen; no forced 520px width */
+  .table-wrap{overflow:visible;width:100%}
+  .timers-table{width:100%;table-layout:fixed}
+  .timers-table th,.timers-table td{padding:9px 6px;font-size:13px;vertical-align:middle}
+  .timers-table th:nth-child(1),.timers-table td:nth-child(1){width:24%}
+  .timers-table th:nth-child(2),.timers-table td:nth-child(2){width:24%}
+  .timers-table th:nth-child(3),.timers-table td:nth-child(3){width:52%}
+  .timer-actions{justify-content:flex-end;gap:4px;flex-wrap:nowrap}
+  .timer-actions button{margin:0;padding:8px 7px!important;font-size:11px!important;min-width:0}
+
   .container{width:100%;max-width:900px;margin:0 auto}
   .card{padding:20px;margin-bottom:15px}
   .header-row{margin-bottom:15px}
@@ -78,8 +94,7 @@ html.dark-mode .login-error{background:#3b1a1a;color:#ff6b6b;border-color:#5c2a2
   .set-actions{justify-content:flex-end;gap:4px}
   .set-actions button{margin:2px;padding:10px 12px;font-size:14px}
   .dropdown{right:0;min-width:210px}
-  table{min-width:520px}
-  .table-wrap{overflow-x:auto;width:100%}
+  /* overridden above for Active Timers */
 }
 @media(max-width:430px){
   .switch-label{font-size:14px}
@@ -91,10 +106,6 @@ html.dark-mode .login-error{background:#3b1a1a;color:#ff6b6b;border-color:#5c2a2
   .set-card{grid-template-columns:1fr;}
   .set-actions{justify-content:flex-start;flex-wrap:wrap}
 }
-
-/* ESP32-style Schedule Sets and Active Timers on mobile */
-.schedule-table-wrap{width:100%;overflow:visible}.schedule-table{width:100%;table-layout:fixed}.schedule-table th,.schedule-table td{padding:10px 8px}.schedule-table th:nth-child(1),.schedule-table td:nth-child(1){width:25%}.schedule-table th:nth-child(2),.schedule-table td:nth-child(2){width:25%}.schedule-table th:nth-child(3),.schedule-table td:nth-child(3){width:50%}.schedule-table .timer-actions{display:flex;gap:5px;flex-wrap:nowrap}.schedule-table .timer-actions button{margin:0;padding:7px 9px;font-size:11px}
-@media(max-width:430px){.set-card{grid-template-columns:minmax(0,1fr) auto;padding:12px 10px;gap:7px}.set-info{min-width:0}.set-name{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.set-meta{font-size:11px;white-space:nowrap}.set-actions{justify-content:flex-end;flex-wrap:nowrap;gap:3px}.set-actions button{margin:1px;padding:7px 6px;font-size:10px}.set-actions .switch{width:74px;height:28px;flex:0 0 74px}.set-actions .slider{padding:0 7px}.set-actions .slider:before{height:22px;width:32px;left:3px;bottom:3px}.set-actions input:checked+.slider-set:before{transform:translateX(36px)}.set-actions .slider-text-left,.set-actions .slider-text-right{font-size:8px}.schedule-table th,.schedule-table td{padding:9px 5px;font-size:12px}.schedule-table .timer-actions{gap:3px}.schedule-table .timer-actions button{padding:7px 6px;font-size:10px}}
 </style>
 </head>
 <body>
@@ -214,7 +225,7 @@ html.dark-mode .login-error{background:#3b1a1a;color:#ff6b6b;border-color:#5c2a2
   <div class="header-row"><div class="header-left"><button class="back-btn" onclick="openSchedules()">&#8592;</button><h1 id="setViewTitle" style="margin:0">Schedule Set</h1></div><button class="settings-btn" onclick="toggleMenu3()">&#9881;</button><div id="setMenu" class="dropdown"><a onclick="openCredentials()">Device Credentials</a><a onclick="toggleDarkMode()" id="darkModeToggleSet">Toggle Dark Mode</a><a onclick="showDeviceInfo()">Device Connection</a><a onclick="remoteLogout()">Logout</a></div></div>
   <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px"><div><div class="small">Status</div><div id="setViewStatus" style="font-size:20px;font-weight:bold">INACTIVE</div></div><div><button class="btn" onclick="renameCurrentSet()">RENAME</button></div></div></div>
   <div class="card"><h2>Add Timer</h2><div class="login-form"><div class="input-group"><label style="font-weight:bold;display:block;margin-bottom:5px">Target Time:</label><input type="time" id="newTimerTime" required></div><div class="input-group"><label style="font-weight:bold;display:block;margin-bottom:5px">Trigger Source:</label><select id="newTimerSource" style="width:100%;margin:0;padding:12px 14px"><option value="GRID">GRID</option><option value="SOLAR">SOLAR</option></select></div><button class="btn" style="margin-left:0;margin-top:15px" onclick="addTimer()">ADD TIMER</button></div></div>
-  <div class="card"><h2>Active Timers</h2><div class="schedule-table-wrap"><table class="schedule-table"><thead><tr><th>Time</th><th>Source</th><th>Actions</th></tr></thead><tbody id="timersBody"></tbody></table></div><p id="noTimers" style="text-align:center;color:var(--txt-muted);padding:20px 0;display:none">No timers yet. Add one above.</p></div>
+  <div class="card"><h2>Active Timers</h2><div class="table-wrap"><table class="timers-table"><thead><tr><th>Time</th><th>Source</th><th>Actions</th></tr></thead><tbody id="timersBody"></tbody></table></div><p id="noTimers" style="text-align:center;color:var(--txt-muted);padding:20px 0;display:none">No timers yet. Add one above.</p></div>
 </section>
 
 <div class="card"><h2>Remote Connection Log</h2><div id="log" class="log"></div></div>
