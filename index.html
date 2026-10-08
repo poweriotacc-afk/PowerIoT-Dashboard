@@ -52,6 +52,13 @@ html.dark-mode .login-error{background:#3b1a1a;color:#ff6b6b;border-color:#5c2a2
 #renameSetPage .login-form{width:100%;max-width:380px;margin:0 auto}
 #renameSetPage .login-button{display:block;width:100%}
 #renameSetInput{width:100%;box-sizing:border-box}
+/* EDIT TIMER PAGE - ESP32-STYLE FORM */
+#editTimerPage .edit-timer-form{width:100%;max-width:100%;margin:0 auto}
+#editTimerPage .edit-timer-form .input-group{width:100%;margin-bottom:12px}
+#editTimerPage .edit-timer-form input[type=time],#editTimerPage .edit-timer-form select{width:100%;box-sizing:border-box;padding:12px 14px;margin:0;border:1px solid var(--border);border-radius:8px;font-size:15px;background:var(--card);color:var(--txt);outline:none}
+#editTimerPage .edit-actions{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px}
+#editTimerPage .edit-actions button{margin:0}
+@media(max-width:430px){#editTimerPage .edit-actions{gap:12px}#editTimerPage .edit-actions button{flex:1 1 140px}}
 
 /* RESPONSIVE LAYOUT - SAME POSITIONING ON PC AND MOBILE */
 .status-grid{grid-template-columns:1fr 1fr}
@@ -221,6 +228,45 @@ html.dark-mode .login-error{background:#3b1a1a;color:#ff6b6b;border-color:#5c2a2
   </div>
 </section>
 
+<!-- EDIT TIMER PAGE - MATCH ESP32-STYLE EDIT FORM -->
+<section id="editTimerPage" class="hidden">
+  <div class="header-row">
+    <div class="header-left">
+      <button class="back-btn" onclick="cancelEditTimer()">&#8592;</button>
+      <h1 style="margin:0">Edit Timer</h1>
+    </div>
+    <button class="settings-btn" onclick="toggleMenu4()">&#9881;</button>
+    <div id="editTimerMenu" class="dropdown">
+      <a onclick="openCredentials()">Device Credentials</a>
+      <a onclick="toggleDarkMode()" id="darkModeToggleEdit">Toggle Dark Mode</a>
+      <a onclick="showDeviceInfo()">Device Connection</a>
+      <a onclick="remoteLogout()">Logout</a>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Edit Timer</h2>
+    <p style="font-size:16px;color:var(--txt-muted);margin:0 0 22px">Set: <b id="editTimerSetName" style="color:var(--txt-bold)">Set 1</b></p>
+    <form class="edit-timer-form" onsubmit="return saveEditTimer(event)">
+      <div class="input-group">
+        <label style="font-weight:bold;display:block;margin-bottom:8px">Target Time:</label>
+        <input type="time" id="editTimerTime" required>
+      </div>
+      <div class="input-group">
+        <label style="font-weight:bold;display:block;margin-bottom:8px">Trigger Source:</label>
+        <select id="editTimerSource">
+          <option value="GRID">GRID</option>
+          <option value="SOLAR">SOLAR</option>
+        </select>
+      </div>
+      <div id="editTimerMessage" class="login-error">&nbsp;</div>
+      <div class="edit-actions">
+        <button class="btn" type="submit">SAVE CHANGES</button>
+        <button class="danger" type="button" onclick="cancelEditTimer()">CANCEL</button>
+      </div>
+    </form>
+  </div>
+</section>
+
 <!-- REMOTE COPY OF ESP32 /set/view PAGE -->
 <section id="setViewPage" class="hidden">
   <div class="header-row"><div class="header-left"><button class="back-btn" onclick="openSchedules()">&#8592;</button><h1 id="setViewTitle" style="margin:0">Schedule Set</h1></div><button class="settings-btn" onclick="toggleMenu3()">&#9881;</button><div id="setMenu" class="dropdown"><a onclick="openCredentials()">Device Credentials</a><a onclick="toggleDarkMode()" id="darkModeToggleSet">Toggle Dark Mode</a><a onclick="showDeviceInfo()">Device Connection</a><a onclick="remoteLogout()">Logout</a></div></div>
@@ -246,13 +292,14 @@ const TOPIC_SENSORS="poweriot/device01/sensors";
 const TOPIC_SCHEDULE="poweriot/device01/command/schedule";
 const TOPIC_SCHEDULE_STATE="poweriot/device01/schedule/state";
 const MAX_SETS=5,MAX_TIMERS=10;
-let client=null,currentSetId=-1,scheduleSets=Array.from({length:MAX_SETS},(_,i)=>({exists:false,isActive:false,name:'Set '+(i+1),timers:[]}));
+let client=null,currentSetId=-1,currentTimerId=-1,scheduleSets=Array.from({length:MAX_SETS},(_,i)=>({exists:false,isActive:false,name:'Set '+(i+1),timers:[]}));
 function log(m){const b=document.getElementById('log');b.innerHTML+='['+new Date().toLocaleTimeString()+'] '+m+'<br>';b.scrollTop=b.scrollHeight}
 function toggleMenu(){document.getElementById('settingsMenu').classList.toggle('show')}
 function toggleMenu2(){document.getElementById('scheduleMenu').classList.toggle('show')}
 function toggleMenu3(){document.getElementById('setMenu').classList.toggle('show')}
+function toggleMenu4(){document.getElementById('editTimerMenu').classList.toggle('show')}
 window.onclick=e=>{if(!e.target.closest('.settings-btn')&&!e.target.closest('.dropdown'))document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'))}
-function updateDarkModeLabels(){const dark=document.documentElement.classList.contains('dark-mode');const text=dark?'Toggle Light Mode':'Toggle Dark Mode';['darkModeToggle','darkModeToggleSchedule','darkModeToggleSet'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=text})}
+function updateDarkModeLabels(){const dark=document.documentElement.classList.contains('dark-mode');const text=dark?'Toggle Light Mode':'Toggle Dark Mode';['darkModeToggle','darkModeToggleSchedule','darkModeToggleSet','darkModeToggleEdit'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=text})}
 function toggleDarkMode(){document.documentElement.classList.toggle('dark-mode');const dark=document.documentElement.classList.contains('dark-mode');localStorage.setItem('darkMode',dark?'1':'0');updateDarkModeLabels();document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'))}
 const AUTH_KEY='poweriotRemoteAuthV1';
 const SESSION_KEY='poweriotRemoteSessionV1';
@@ -272,7 +319,7 @@ function remoteLogout(){document.getElementById('settingsMenu').classList.remove
 function backToDashboard(){showDashboard()}
 function startMQTT(){if(client&&client.connected)return;connectMQTT()}
 
-function showPage(id){['dashboardPage','schedulePage','setViewPage','renameSetPage','credentialsPage','loginPage'].forEach(x=>document.getElementById(x).classList.add('hidden'));document.getElementById(id).classList.remove('hidden');window.scrollTo(0,0)}
+function showPage(id){['dashboardPage','schedulePage','setViewPage','renameSetPage','editTimerPage','credentialsPage','loginPage'].forEach(x=>document.getElementById(x).classList.add('hidden'));document.getElementById(id).classList.remove('hidden');window.scrollTo(0,0)}
 function openSchedules(){document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'));showPage('schedulePage');requestSchedules();}
 function showDeviceInfo(){document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'));alert('PowerIoT Remote Dashboard\n\nRemote connection: HiveMQ Cloud MQTT\nDevice: PowerIoT ESP32\nTopics: poweriot/device01/...')}
 function send(topic,value){if(!client||!client.connected){log('ERROR: MQTT not connected');return}client.publish(topic,value,{qos:0});log('TX '+topic+' → '+value)}
@@ -330,7 +377,37 @@ function cancelRenameSet(){
 function openSet(id){currentSetId=id;document.getElementById('setViewTitle').textContent=scheduleSets[id].name;document.getElementById('setViewStatus').textContent=scheduleSets[id].isActive?'ACTIVE':'INACTIVE';document.getElementById('setViewStatus').style.color=scheduleSets[id].isActive?'#388e3c':'var(--txt-muted)';renderTimers();showPage('setViewPage')}
 function renameCurrentSet(){if(currentSetId>=0)renameSet(currentSetId)}
 function addTimer(){let time=document.getElementById('newTimerTime').value,source=document.getElementById('newTimerSource').value;if(!time)return alert('Select a target time.');let dup=scheduleSets[currentSetId].timers.some(x=>x&&x.enabled&&x.time===time);if(dup)return alert('Duplicate timer at this time.');send(TOPIC_SCHEDULE,'TIMER_ADD|'+currentSetId+'|'+time+'|'+source);document.getElementById('newTimerTime').value=''}
-function editTimer(id){let t=scheduleSets[currentSetId].timers[id];if(!t||!t.enabled)return;let time=prompt('Target Time (HH:MM):',t.time);if(time===null)return;let source=prompt('Trigger Source (GRID or SOLAR):',t.source);if(source===null)return;source=source.toUpperCase();if(!/^\d{2}:\d{2}$/.test(time)||+time.slice(0,2)>23||+time.slice(3)>59)return alert('Invalid time.');if(source!=='GRID'&&source!=='SOLAR')return alert('Source must be GRID or SOLAR.');send(TOPIC_SCHEDULE,'TIMER_EDIT|'+currentSetId+'|'+id+'|'+time+'|'+source)}
+function editTimer(id){
+  let t=scheduleSets[currentSetId]?.timers[id];
+  if(!t||!t.enabled)return;
+  currentTimerId=id;
+  document.getElementById('editTimerSetName').textContent=scheduleSets[currentSetId].name;
+  document.getElementById('editTimerTime').value=t.time;
+  document.getElementById('editTimerSource').value=t.source==='SOLAR'?'SOLAR':'GRID';
+  const m=document.getElementById('editTimerMessage');
+  m.textContent='\u00a0';
+  m.classList.remove('visible');
+  m.style.background='';m.style.color='';m.style.borderColor='';
+  showPage('editTimerPage');
+  setTimeout(()=>document.getElementById('editTimerTime').focus(),50);
+}
+function saveEditTimer(e){
+  e.preventDefault();
+  if(currentSetId<0 || currentTimerId<0)return false;
+  const time=document.getElementById('editTimerTime').value;
+  const source=document.getElementById('editTimerSource').value;
+  const m=document.getElementById('editTimerMessage');
+  if(!time){m.textContent='Please select a target time.';m.classList.add('visible');return false}
+  let dup=scheduleSets[currentSetId].timers.some((x,i)=>x&&x.enabled&&i!==currentTimerId&&x.time===time);
+  if(dup){m.textContent='A timer already exists at this time.';m.classList.add('visible');return false}
+  send(TOPIC_SCHEDULE,'TIMER_EDIT|'+currentSetId+'|'+currentTimerId+'|'+time+'|'+source);
+  m.textContent='Saving changes...';
+  m.classList.add('visible');
+  m.style.background='#e8f5e9';m.style.color='#2e7d32';m.style.borderColor='#a5d6a7';
+  setTimeout(()=>{showPage('setViewPage');requestSchedules()},450);
+  return false;
+}
+function cancelEditTimer(){showPage('setViewPage');renderTimers()}
 function deleteTimer(id){if(confirm('Delete this timer?'))send(TOPIC_SCHEDULE,'TIMER_DELETE|'+currentSetId+'|'+id)}
 function renderTimers(){let body=document.getElementById('timersBody');body.innerHTML='';let arr=scheduleSets[currentSetId].timers.map((t,i)=>({t,i})).filter(x=>x.t&&x.t.enabled).sort((a,b)=>a.t.time.localeCompare(b.t.time));document.getElementById('noTimers').style.display=arr.length?'none':'block';arr.forEach(x=>{let tr=document.createElement('tr');tr.innerHTML='<td><b>'+esc(x.t.time)+'</b></td><td>'+esc(x.t.source)+'</td><td><div class="timer-actions"><button class="btn" style="padding:6px 12px;font-size:12px" onclick="editTimer('+x.i+')">EDIT</button><button class="danger" style="padding:6px 12px;font-size:12px" onclick="deleteTimer('+x.i+')">DELETE</button></div></td>';body.appendChild(tr)})}
 function updateNextEvent(){let active=scheduleSets.find(s=>s.exists&&s.isActive);let el=document.getElementById('nextSchedule'),dot=document.getElementById('dotNext');if(!active){el.textContent='--';dot.className='status-dot dot-event-inactive';return}let now=new Date(),cur=now.getHours()*60+now.getMinutes(),best=null;active.timers.filter(t=>t&&t.enabled).forEach(t=>{let [h,m]=t.time.split(':').map(Number),v=h*60+m;if(v>cur&&(!best||v<best.v))best={v,time:t.time,source:t.source}});if(!best){active.timers.filter(t=>t&&t.enabled).forEach(t=>{let [h,m]=t.time.split(':').map(Number),v=h*60+m;if(!best||v<best.v)best={v,time:t.time,source:t.source}})}el.textContent=best?best.time+' → '+best.source:'--';dot.className='status-dot '+(best?'dot-event-active':'dot-event-inactive')}
