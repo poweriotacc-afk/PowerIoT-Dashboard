@@ -161,7 +161,8 @@ html.dark-mode .login-error{background:#3b1a1a;color:#ff6b6b;border-color:#5c2a2
     <div class="status-item"><div id="dotSchedule" class="status-dot dot-off"></div><div class="status-info"><span class="status-name">Scheduling</span><span id="scheduleStatus" class="status-val">INACTIVE</span></div></div>
     <div class="status-item status-item-full"><div id="dotNext" class="status-dot dot-event-inactive"></div><div class="status-info"><span class="status-name">Next Scheduled Event</span><span id="nextSchedule" class="status-val">--</span></div></div>
   </div>
-  <div class="connection-row"><span class="small">Remote MQTT Connection</span><span id="connectionStatus" class="connection"><span class="connection-dot"></span>DISCONNECTED</span></div>
+
+  <span id="connectionStatus" class="connection hidden" aria-hidden="true"><span class="connection-dot"></span>DISCONNECTED</span>
   </div>
 
   <div class="card"><h2>Device Controls</h2>
