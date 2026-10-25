@@ -311,7 +311,7 @@ function setSession(){localStorage.setItem(SESSION_KEY,JSON.stringify({loggedIn:
 function clearSession(){localStorage.removeItem(SESSION_KEY)}
 function showLogin(msg){sessionStorage.removeItem('poweriotLastPage');showPage('loginPage');const e=document.getElementById('loginError');e.textContent=msg||'\u00a0';e.classList.toggle('visible',!!msg);document.getElementById('loginPassword').value='';}
 function showDashboard(){showPage('dashboardPage')}
-async function handleRemoteLogin(e){e.preventDefault();const u=document.getElementById('loginUsername').value.trim(),p=document.getElementById('loginPassword').value,a=await getStoredAuth(),h=await sha256(p),box=document.getElementById('loginError');if(u===a.username&&h===a.passwordHash){setSession();box.classList.remove('visible');showDashboard();startMQTT();return false}box.textContent=u!==a.username?'Incorrect username':'Incorrect password';box.classList.add('visible');return false}
+async function handleRemoteLogin(e){e.preventDefault();const u=document.getElementById('loginUsername').value.trim(),p=document.getElementById('loginPassword').value,a=await getStoredAuth(),h=await sha256(p),box=document.getElementById('loginError');if(u===a.username&&h===a.passwordHash){setSession();box.classList.remove('visible');historyRestoring=true;showDashboard();historyRestoring=false;appNavigationDepth=0;history.replaceState(pageSnapshot('dashboardPage'),'','#dashboardPage');startMQTT();return false}box.textContent=u!==a.username?'Incorrect username':'Incorrect password';box.classList.add('visible');return false}
 function toggleLoginPassword(){const p=document.getElementById('loginPassword'),o=document.getElementById('eyeOpen'),c=document.getElementById('eyeClosed');if(p.type==='password'){p.type='text';o.style.display='none';c.style.display='block'}else{p.type='password';o.style.display='block';c.style.display='none'}}
 async function openCredentials(){document.getElementById('settingsMenu').classList.remove('show');const a=await getStoredAuth();document.getElementById('newUsername').value=a.username;showPage('credentialsPage')}
 async function saveRemoteCredentials(e){e.preventDefault();const u=document.getElementById('newUsername').value.trim(),p=document.getElementById('newPassword').value,c=document.getElementById('confirmPassword').value,m=document.getElementById('credentialMessage');m.style.background='';m.style.color='';m.style.borderColor='';if(!u||p.length<4||p!==c){m.textContent=p!==c?'Passwords do not match':'Please complete all fields. Password must be at least 4 characters.';m.classList.add('visible');return false}localStorage.setItem(AUTH_KEY,JSON.stringify({username:u,passwordHash:await sha256(p)}));m.textContent='Credentials saved successfully.';m.classList.add('visible');m.style.background='#e8f5e9';m.style.color='#2e7d32';m.style.borderColor='#a5d6a7';setTimeout(()=>showDashboard(),900);return false}
@@ -319,7 +319,54 @@ function remoteLogout(){sessionStorage.removeItem('poweriotLastPage');document.g
 function backToDashboard(){showDashboard()}
 function startMQTT(){if(client&&client.connected)return;connectMQTT()}
 
-function showPage(id){if(id!=='loginPage')sessionStorage.setItem('poweriotLastPage',JSON.stringify({id,setId:currentSetId,timerId:currentTimerId}));['dashboardPage','schedulePage','setViewPage','renameSetPage','editTimerPage','credentialsPage','loginPage'].forEach(x=>document.getElementById(x).classList.add('hidden'));document.getElementById(id).classList.remove('hidden');window.scrollTo(0,0)}
+let historyRestoring=false;
+let appNavigationDepth=0;
+function pageSnapshot(id){return {poweriotPage:true,id,setId:currentSetId,timerId:currentTimerId,depth:appNavigationDepth}}
+function showPage(id){
+ const previous=document.querySelector('section:not(.hidden)');
+ const previousId=previous?.id;
+ if(id!=='loginPage')sessionStorage.setItem('poweriotLastPage',JSON.stringify({id,setId:currentSetId,timerId:currentTimerId}));
+ ['dashboardPage','schedulePage','setViewPage','renameSetPage','editTimerPage','credentialsPage','loginPage'].forEach(x=>document.getElementById(x).classList.add('hidden'));
+ document.getElementById(id).classList.remove('hidden');
+ if(!historyRestoring && previousId!==id){
+   appNavigationDepth++;
+   history.pushState(pageSnapshot(id),'','#'+id);
+ }
+ window.scrollTo(0,0);
+}
+function restoreHistoryPage(state){
+ if(!state?.poweriotPage||!document.getElementById(state.id))return;
+ if(!sessionValid()){showLogin('');return}
+ appNavigationDepth=state.depth||0;
+ currentSetId=Number.isInteger(state.setId)?state.setId:-1;
+ currentTimerId=Number.isInteger(state.timerId)?state.timerId:-1;
+ historyRestoring=true;
+ if(state.id==='setViewPage'&&currentSetId>=0&&scheduleSets[currentSetId]?.exists){
+   openSet(currentSetId);
+ }else if(state.id==='editTimerPage'&&currentSetId>=0&&currentTimerId>=0&&scheduleSets[currentSetId]?.timers[currentTimerId]?.enabled){
+   editTimer(currentTimerId);
+ }else if(state.id==='renameSetPage'&&currentSetId>=0&&scheduleSets[currentSetId]?.exists){
+   renameSet(currentSetId);
+ }else{
+   showPage(state.id);
+ }
+ historyRestoring=false;
+ if(['schedulePage','setViewPage','editTimerPage','renameSetPage'].includes(state.id))requestSchedules();
+}
+window.addEventListener('popstate',event=>{
+ if(event.state?.poweriotPage){restoreHistoryPage(event.state)}
+ else if(sessionValid()){historyRestoring=true;showPage('dashboardPage');historyRestoring=false}
+});
+document.addEventListener('click',event=>{
+ const back=event.target.closest('.back-btn');
+ if(!back||!sessionValid())return;
+ if(appNavigationDepth>0){
+   event.preventDefault();
+   event.stopImmediatePropagation();
+   history.back();
+ }
+},true);
+
 function openSchedules(){document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'));showPage('schedulePage');requestSchedules();}
 function showDeviceInfo(){document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'));alert('PowerIoT Remote Dashboard\n\nRemote connection: HiveMQ Cloud MQTT\nDevice: PowerIoT ESP32\nTopics: poweriot/device01/...')}
 function send(topic,value){if(!client||!client.connected){log('ERROR: MQTT not connected');return}client.publish(topic,value,{qos:0});log('TX '+topic+' → '+value)}
@@ -456,6 +503,6 @@ function deleteTimer(id){if(confirm('Delete this timer?'))fastScheduleAction('TI
 function renderTimers(){let body=document.getElementById('timersBody');body.innerHTML='';let arr=scheduleSets[currentSetId].timers.map((t,i)=>({t,i})).filter(x=>x.t&&x.t.enabled).sort((a,b)=>a.t.time.localeCompare(b.t.time));document.getElementById('noTimers').style.display=arr.length?'none':'block';arr.forEach(x=>{let tr=document.createElement('tr');tr.innerHTML='<td><b>'+esc(x.t.time)+'</b></td><td>'+esc(x.t.source)+'</td><td><div class="timer-actions"><button class="btn" style="padding:6px 12px;font-size:12px" onclick="editTimer('+x.i+')">EDIT</button><button class="danger" style="padding:6px 12px;font-size:12px" onclick="deleteTimer('+x.i+')">DELETE</button></div></td>';body.appendChild(tr)})}
 function updateNextEvent(){let active=scheduleSets.find(s=>s.exists&&s.isActive);let el=document.getElementById('nextSchedule'),dot=document.getElementById('dotNext');if(!active){el.textContent='--';dot.className='status-dot dot-event-inactive';return}let now=new Date(),cur=now.getHours()*60+now.getMinutes(),best=null;active.timers.filter(t=>t&&t.enabled).forEach(t=>{let [h,m]=t.time.split(':').map(Number),v=h*60+m;if(v>cur&&(!best||v<best.v))best={v,time:t.time,source:t.source}});if(!best){active.timers.filter(t=>t&&t.enabled).forEach(t=>{let [h,m]=t.time.split(':').map(Number),v=h*60+m;if(!best||v<best.v)best={v,time:t.time,source:t.source}})}el.textContent=best?best.time+' → '+best.source:'--';dot.className='status-dot '+(best?'dot-event-active':'dot-event-inactive')}
 function connectMQTT(){log('Connecting to HiveMQ Cloud...');let id='PowerIoT-Web-'+Math.random().toString(16).slice(2,10);client=mqtt.connect(`wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`,{username:MQTT_USERNAME,password:MQTT_PASSWORD,clientId:id,clean:true,reconnectPeriod:3000,connectTimeout:10000});client.on('connect',()=>{log('MQTT CONNECTED');let s=document.getElementById('connectionStatus');s.innerHTML='<span class="connection-dot"></span>CONNECTED';s.classList.add('connected');client.subscribe(TOPIC_STATUS);client.subscribe(TOPIC_SENSORS);client.subscribe(TOPIC_SCHEDULE_STATE);log('Subscribed to status');log('Subscribed to sensors');log('Subscribed to schedule state');requestSchedules()});client.on('message',(topic,message)=>{let data=message.toString();if(topic!==TOPIC_SENSORS&&topic!==TOPIC_STATUS)log('RX '+topic+' → '+data);if(topic===TOPIC_SCHEDULE_STATE){parseSchedule(data);return}try{let j=JSON.parse(data);if(topic===TOPIC_STATUS)updateStatus(j);if(topic===TOPIC_SENSORS)updateSensors(j)}catch(e){log('JSON ERROR')}});client.on('error',e=>log('MQTT ERROR: '+e.message));client.on('close',()=>{log('MQTT DISCONNECTED');let s=document.getElementById('connectionStatus');s.innerHTML='<span class="connection-dot"></span>DISCONNECTED';s.classList.remove('connected')})}
-setInterval(updateNextEvent,30000);window.addEventListener('load',async()=>{if(localStorage.getItem('darkMode')==='1')document.documentElement.classList.add('dark-mode');updateDarkModeLabels();try{const cached=JSON.parse(sessionStorage.getItem('poweriotLastStatus')||'null');if(cached)updateStatus(cached)}catch(e){}if(sessionValid()){let saved=null;try{saved=JSON.parse(sessionStorage.getItem('poweriotLastPage')||'null')}catch(e){};if(saved&&['dashboardPage','schedulePage','setViewPage','renameSetPage','editTimerPage','credentialsPage'].includes(saved.id)){currentSetId=Number.isInteger(saved.setId)?saved.setId:-1;currentTimerId=Number.isInteger(saved.timerId)?saved.timerId:-1;showPage(saved.id)}else{showDashboard()}startMQTT()}else{showLogin('')}});
+setInterval(updateNextEvent,30000);window.addEventListener('load',async()=>{if(localStorage.getItem('darkMode')==='1')document.documentElement.classList.add('dark-mode');updateDarkModeLabels();try{const cached=JSON.parse(sessionStorage.getItem('poweriotLastStatus')||'null');if(cached)updateStatus(cached)}catch(e){}if(sessionValid()){let saved=null;try{saved=JSON.parse(sessionStorage.getItem('poweriotLastPage')||'null')}catch(e){};if(saved&&['dashboardPage','schedulePage','setViewPage','renameSetPage','editTimerPage','credentialsPage'].includes(saved.id)){currentSetId=Number.isInteger(saved.setId)?saved.setId:-1;currentTimerId=Number.isInteger(saved.timerId)?saved.timerId:-1;historyRestoring=true;showPage(saved.id);historyRestoring=false;appNavigationDepth=history.state?.poweriotPage?(history.state.depth||0):0;history.replaceState(pageSnapshot(saved.id),'','#'+saved.id)}else{historyRestoring=true;showDashboard();historyRestoring=false;history.replaceState(pageSnapshot('dashboardPage'),'','#dashboardPage')}startMQTT()}else{showLogin('')}});
 </script>
 </body></html>
