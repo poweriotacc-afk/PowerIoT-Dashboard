@@ -356,7 +356,7 @@ const TOPIC_STATUS="poweriot/device01/status";
 const TOPIC_SENSORS="poweriot/device01/sensors";
 const TOPIC_SCHEDULE="poweriot/device01/command/schedule";
 const TOPIC_SCHEDULE_STATE="poweriot/device01/schedule/state";
-const MAX_SETS=5,MAX_TIMERS=10;
+const MAX_SETS=8,MAX_TIMERS=24;
 let client=null,currentSetId=-1,currentTimerId=-1,scheduleSets=Array.from({length:MAX_SETS},(_,i)=>({exists:false,isActive:false,name:'Set '+(i+1),timers:[]}));
 function log(m){const b=document.getElementById('log');const line=document.createElement('div');line.textContent='['+new Date().toLocaleTimeString()+'] '+m;b.appendChild(line);while(b.childElementCount>80)b.firstElementChild.remove();b.scrollTop=b.scrollHeight}
 function toggleMenu(){document.getElementById('settingsMenu').classList.toggle('show')}
