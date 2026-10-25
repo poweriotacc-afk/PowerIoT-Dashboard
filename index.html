@@ -166,6 +166,19 @@ html.dark-mode .login-error{background:#3b1a1a;color:#ff6b6b;border-color:#5c2a2
   #setViewPage .timer-actions{gap:7px!important}
   #setViewPage .timer-actions button{padding:9px 8px!important;font-size:10px!important}
 }
+
+/* Match ESP32 screenshots: full-width forms, header gear and buttons */
+#credentialsPage .header-row, #renameSetPage .header-row{margin-bottom:28px}
+#credentialsPage .card, #renameSetPage .card{padding:20px}
+#credentialsPage .card h2{font-size:24px;margin:0 0 22px}
+#credentialsPage .credentials-form,#renameSetPage .rename-form{width:100%;max-width:none;margin:0}
+#credentialsPage .credentials-form .input-group{margin-bottom:12px}
+#credentialsPage .credentials-form input,#renameSetPage .rename-form input{display:block;width:100%;padding:12px 14px;font-size:16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--txt);box-sizing:border-box}
+#credentialsPage .credentials-form button,#renameSetPage .rename-form button{width:auto;display:inline-block;margin:24px 0 0;padding:13px 20px}
+#renameSetPage .form-title{display:block;font-size:16px;font-weight:bold;margin-bottom:6px;color:var(--txt)}
+#credentialsPage .login-error:not(.visible),#renameSetPage .login-error:not(.visible){display:none}
+#credentialsPage .header-row .settings-btn{margin-left:auto}
+@media(max-width:650px){#credentialsPage .card h2{font-size:23px}}
 </style>
 </head>
 <body>
@@ -240,17 +253,22 @@ html.dark-mode .login-error{background:#3b1a1a;color:#ff6b6b;border-color:#5c2a2
 <!-- DEVICE CREDENTIALS PAGE -->
 <section id="credentialsPage" class="hidden">
   <div class="header-row">
-    <div class="header-left"><button class="back-btn" onclick="backToDashboard()">&#8592;</button><h1 style="margin:0">Device Credentials</h1></div>
+    <div class="header-left"><button class="back-btn" onclick="backToDashboard()">&#8592;</button><h1 style="margin:0">Credentials</h1></div>
+    <button class="settings-btn" onclick="toggleCredentialsMenu()">&#9881;</button>
+    <div id="credentialsMenu" class="dropdown">
+      <a onclick="openCredentials()">Device Credentials</a>
+      <a onclick="toggleDarkMode()" id="darkModeToggleCredentials">Toggle Dark Mode</a>
+      <a onclick="showDeviceInfo()">Device Connection</a>
+      <a onclick="remoteLogout()">Logout</a>
+    </div>
   </div>
   <div class="card">
-    <h2>Change Username / Password</h2>
-    <p class="schedule-note">Change the login credentials used by this remote web dashboard.</p>
-    <form onsubmit="return saveRemoteCredentials(event)" class="login-form">
-      <div class="input-group"><input id="newUsername" type="text" placeholder="New Username" required maxlength="32"></div>
-      <div class="input-group"><div class="password-container"><input id="newPassword" type="password" placeholder="New Password" required minlength="4" maxlength="64"></div></div>
-      <div class="input-group"><div class="password-container"><input id="confirmPassword" type="password" placeholder="Confirm Password" required minlength="4" maxlength="64"></div></div>
+    <h2>Change Account Setup</h2>
+    <form onsubmit="return saveRemoteCredentials(event)" class="login-form credentials-form">
+      <div class="input-group"><input id="newUsername" type="text" placeholder="New username" required maxlength="32" autocomplete="off"></div>
+      <div class="input-group"><input id="newPassword" type="password" placeholder="New password" required minlength="4" maxlength="64" autocomplete="new-password"></div>
       <div id="credentialMessage" class="login-error">&nbsp;</div>
-      <button class="btn login-button" type="submit">SAVE CREDENTIALS</button>
+      <button class="btn" type="submit">SAVE ACCOUNT</button>
     </form>
   </div>
 </section>
@@ -263,20 +281,14 @@ html.dark-mode .login-error{background:#3b1a1a;color:#ff6b6b;border-color:#5c2a2
 <!-- RENAME SET PAGE - MATCH ESP32 STYLE -->
 <section id="renameSetPage" class="hidden">
   <div class="header-row">
-    <div class="header-left">
-      <button class="back-btn" onclick="cancelRenameSet()">&#8592;</button>
-      <h1 style="margin:0">Rename Set</h1>
-    </div>
+    <div class="header-left"><button class="back-btn" onclick="cancelRenameSet()">&#8592;</button><h1 style="margin:0">Rename Set</h1></div>
   </div>
   <div class="card">
-    <h2>Set Name</h2>
-    <p class="schedule-note">Enter a new name for this schedule set.</p>
-    <form onsubmit="return saveRenameSet(event)" class="login-form">
-      <div class="input-group">
-        <input id="renameSetInput" type="text" placeholder="Set Name" maxlength="32" required>
-      </div>
+    <form onsubmit="return saveRenameSet(event)" class="rename-form">
+      <label for="renameSetInput" class="form-title">Set Name (max 32 chars):</label>
+      <input id="renameSetInput" type="text" placeholder="Set Name" maxlength="32" required>
       <div id="renameSetMessage" class="login-error">&nbsp;</div>
-      <button class="btn login-button" type="submit">SAVE NAME</button>
+      <button class="btn" type="submit">SAVE NAME</button>
     </form>
   </div>
 </section>
@@ -350,9 +362,10 @@ function log(m){const b=document.getElementById('log');const line=document.creat
 function toggleMenu(){document.getElementById('settingsMenu').classList.toggle('show')}
 function toggleMenu2(){document.getElementById('scheduleMenu').classList.toggle('show')}
 function toggleMenu3(){document.getElementById('setMenu').classList.toggle('show')}
+function toggleCredentialsMenu(){document.getElementById('credentialsMenu').classList.toggle('show')}
 function toggleMenu4(){document.getElementById('editTimerMenu').classList.toggle('show')}
 window.onclick=e=>{if(!e.target.closest('.settings-btn')&&!e.target.closest('.dropdown'))document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'))}
-function updateDarkModeLabels(){const dark=document.documentElement.classList.contains('dark-mode');const text=dark?'Toggle Light Mode':'Toggle Dark Mode';['darkModeToggle','darkModeToggleSchedule','darkModeToggleSet','darkModeToggleEdit'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=text})}
+function updateDarkModeLabels(){const dark=document.documentElement.classList.contains('dark-mode');const text=dark?'Toggle Light Mode':'Toggle Dark Mode';['darkModeToggle','darkModeToggleSchedule','darkModeToggleSet','darkModeToggleEdit','darkModeToggleCredentials'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=text})}
 function toggleDarkMode(){document.documentElement.classList.toggle('dark-mode');const dark=document.documentElement.classList.contains('dark-mode');localStorage.setItem('darkMode',dark?'1':'0');updateDarkModeLabels();document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'))}
 const AUTH_KEY='poweriotRemoteAuthV1';
 const SESSION_KEY='poweriotRemoteSessionV1';
@@ -366,7 +379,7 @@ function showLogin(msg){sessionStorage.removeItem('poweriotLastPage');showPage('
 function showDashboard(){showPage('dashboardPage')}
 async function handleRemoteLogin(e){e.preventDefault();const u=document.getElementById('loginUsername').value.trim(),p=document.getElementById('loginPassword').value,a=await getStoredAuth(),h=await sha256(p),box=document.getElementById('loginError');if(u===a.username&&h===a.passwordHash){setSession();box.classList.remove('visible');historyRestoring=true;showDashboard();historyRestoring=false;appNavigationDepth=0;history.replaceState(pageSnapshot('dashboardPage'),'','#dashboardPage');startMQTT();return false}box.textContent=u!==a.username?'Incorrect username':'Incorrect password';box.classList.add('visible');return false}
 function toggleLoginPassword(){const p=document.getElementById('loginPassword'),o=document.getElementById('eyeOpen'),c=document.getElementById('eyeClosed');if(p.type==='password'){p.type='text';o.style.display='none';c.style.display='block'}else{p.type='password';o.style.display='block';c.style.display='none'}}
-async function openCredentials(){document.getElementById('settingsMenu').classList.remove('show');const a=await getStoredAuth();document.getElementById('newUsername').value=a.username;showPage('credentialsPage')}
+async function openCredentials(){document.getElementById('settingsMenu').classList.remove('show');const a=await getStoredAuth();document.getElementById('newUsername').value='';document.getElementById('newPassword').value='';document.getElementById('credentialMessage').classList.remove('visible');showPage('credentialsPage')}
 async function saveRemoteCredentials(e){e.preventDefault();const u=document.getElementById('newUsername').value.trim(),p=document.getElementById('newPassword').value,c=document.getElementById('confirmPassword').value,m=document.getElementById('credentialMessage');m.style.background='';m.style.color='';m.style.borderColor='';if(!u||p.length<4||p!==c){m.textContent=p!==c?'Passwords do not match':'Please complete all fields. Password must be at least 4 characters.';m.classList.add('visible');return false}localStorage.setItem(AUTH_KEY,JSON.stringify({username:u,passwordHash:await sha256(p)}));m.textContent='Credentials saved successfully.';m.classList.add('visible');m.style.background='#e8f5e9';m.style.color='#2e7d32';m.style.borderColor='#a5d6a7';setTimeout(()=>showDashboard(),900);return false}
 function remoteLogout(){sessionStorage.removeItem('poweriotLastPage');document.getElementById('settingsMenu').classList.remove('show');clearSession();sessionStorage.removeItem('poweriotLastStatus');sessionStorage.removeItem('poweriotLastPage');if(client){try{client.end(true)}catch(e){}client=null}showLogin('')}
 function backToDashboard(){showDashboard()}
