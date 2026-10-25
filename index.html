@@ -114,6 +114,58 @@ html.dark-mode .login-error{background:#3b1a1a;color:#ff6b6b;border-color:#5c2a2
   .set-card{grid-template-columns:1fr;}
   .set-actions{justify-content:flex-start;flex-wrap:wrap}
 }
+
+/* ESP32 MOBILE LAYOUT MATCH — SCHEDULE SETS AND ACTIVE TIMERS */
+@media (max-width:650px){
+  #schedulePage .set-card{
+    display:flex!important;flex-direction:column!important;align-items:stretch!important;
+    gap:13px!important;padding:14px!important;margin-bottom:10px!important;
+    border:1px solid var(--border);border-radius:10px;
+  }
+  #schedulePage .set-info{width:100%!important;min-width:0!important;flex:auto!important}
+  #schedulePage .set-name{font-size:17px!important;margin-bottom:4px!important}
+  #schedulePage .set-meta{font-size:13px!important}
+  #schedulePage .set-actions{
+    display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;
+    justify-content:flex-start!important;align-items:center!important;
+    width:100%!important;gap:8px 12px!important;
+  }
+  #schedulePage .set-actions button{
+    width:auto!important;flex:none!important;margin:0!important;
+    padding:9px 12px!important;font-size:12px!important;
+    font-weight:bold!important;line-height:1.1!important;border-radius:8px!important;
+    min-height:34px!important;
+  }
+  #schedulePage .set-actions .switch{
+    flex:0 0 96px!important;width:96px!important;height:34px!important;
+    margin:0!important;margin-top:0!important;
+    grid-column:auto!important;
+    /* Put the selector below the three action buttons */
+  }
+  #schedulePage .set-actions::before{content:'';flex-basis:100%;height:0;order:1}
+  #schedulePage .set-actions .switch{order:2}
+  #schedulePage .set-actions button{order:0}
+  #setViewPage .table-wrap{width:100%!important;overflow-x:auto!important}
+  #setViewPage .timers-table{width:100%!important;table-layout:fixed!important;border-collapse:collapse!important}
+  #setViewPage .timers-table th,#setViewPage .timers-table td{
+    padding:15px 10px!important;font-size:14px!important;
+    text-align:left!important;vertical-align:middle!important;
+  }
+  #setViewPage .timers-table th:nth-child(1),#setViewPage .timers-table td:nth-child(1){width:22%!important}
+  #setViewPage .timers-table th:nth-child(2),#setViewPage .timers-table td:nth-child(2){width:25%!important}
+  #setViewPage .timers-table th:nth-child(3),#setViewPage .timers-table td:nth-child(3){width:53%!important}
+  #setViewPage .timer-actions{display:flex!important;flex-wrap:nowrap!important;gap:10px!important;justify-content:flex-start!important;align-items:center!important}
+  #setViewPage .timer-actions button{
+    flex:0 0 auto!important;margin:0!important;padding:9px 10px!important;
+    font-size:11px!important;line-height:1.1!important;min-width:0!important;
+    border-radius:8px!important;
+  }
+}
+@media (max-width:380px){
+  #setViewPage .timers-table th,#setViewPage .timers-table td{padding:13px 7px!important;font-size:13px!important}
+  #setViewPage .timer-actions{gap:7px!important}
+  #setViewPage .timer-actions button{padding:9px 8px!important;font-size:10px!important}
+}
 </style>
 </head>
 <body>
