@@ -381,7 +381,7 @@ async function handleRemoteLogin(e){e.preventDefault();const u=document.getEleme
 function toggleLoginPassword(){const p=document.getElementById('loginPassword'),o=document.getElementById('eyeOpen'),c=document.getElementById('eyeClosed');if(p.type==='password'){p.type='text';o.style.display='none';c.style.display='block'}else{p.type='password';o.style.display='block';c.style.display='none'}}
 async function openCredentials(){document.getElementById('settingsMenu').classList.remove('show');const a=await getStoredAuth();document.getElementById('newUsername').value='';document.getElementById('newPassword').value='';document.getElementById('credentialMessage').classList.remove('visible');showPage('credentialsPage')}
 async function saveRemoteCredentials(e){e.preventDefault();const u=document.getElementById('newUsername').value.trim(),p=document.getElementById('newPassword').value,c=document.getElementById('confirmPassword').value,m=document.getElementById('credentialMessage');m.style.background='';m.style.color='';m.style.borderColor='';if(!u||p.length<4||p!==c){m.textContent=p!==c?'Passwords do not match':'Please complete all fields. Password must be at least 4 characters.';m.classList.add('visible');return false}localStorage.setItem(AUTH_KEY,JSON.stringify({username:u,passwordHash:await sha256(p)}));m.textContent='Credentials saved successfully.';m.classList.add('visible');m.style.background='#e8f5e9';m.style.color='#2e7d32';m.style.borderColor='#a5d6a7';setTimeout(()=>showDashboard(),900);return false}
-function remoteLogout(){sessionStorage.removeItem('poweriotLastPage');document.getElementById('settingsMenu').classList.remove('show');clearSession();sessionStorage.removeItem('poweriotLastStatus');sessionStorage.removeItem('poweriotLastPage');if(client){try{client.end(true)}catch(e){}client=null}showLogin('')}
+function remoteLogout(){sessionStorage.removeItem('poweriotLastPage');document.getElementById('settingsMenu').classList.remove('show');clearSession();localStorage.removeItem('poweriotLastStatus');sessionStorage.removeItem('poweriotLastPage');if(client){try{client.end(true)}catch(e){}client=null}showLogin('')}
 function backToDashboard(){showDashboard()}
 function startMQTT(){if(client&&client.connected)return;connectMQTT()}
 
@@ -459,7 +459,7 @@ setTimeout(()=>{const p=pendingControls[type];if(p&&p.value===v&&Date.now()>=p.u
 }
 function updateStatus(d){
 lastDeviceStatus=d;
-try{sessionStorage.setItem('poweriotLastStatus',JSON.stringify(d))}catch(e){}
+try{localStorage.setItem('poweriotLastStatus',JSON.stringify(d))}catch(e){}
 const actual={system:d.systemOn?'ON':'OFF',source:d.source||'GRID',mode:d.mode||'MANUAL',scheduling:d.scheduling?'ON':'OFF'};
 for(const [type,p] of Object.entries(pendingControls)){
  if(actual[type]===p.value || Date.now()>p.until)delete pendingControls[type];
@@ -472,9 +472,73 @@ for(const [type,p] of Object.entries(pendingControls)){
  renderControlPreview(type,p.value);
 }
 updateNextEvent()}
-function updateSensors(d){document.getElementById('gridV').textContent=Number(d.gridV||0).toFixed(1)+' V';document.getElementById('gridI').textContent=Number(d.gridI||0).toFixed(2)+' A';document.getElementById('gridP').textContent=Number(d.gridP||0).toFixed(1)+' W';document.getElementById('gridE').textContent=Number(d.gridE||0).toFixed(3)+' kWh';document.getElementById('solarV').textContent=Number(d.solarV||0).toFixed(1)+' V';document.getElementById('solarI').textContent=Number(d.solarI||0).toFixed(2)+' A';document.getElementById('solarP').textContent=Number(d.solarP||0).toFixed(1)+' W';document.getElementById('solarE').textContent=Number(d.solarE||0).toFixed(3)+' kWh'}
-function parseSchedule(msg){if(msg==='END'){renderSets();if(currentSetId>=0&&currentSetId<MAX_SETS&&scheduleSets[currentSetId].exists){document.getElementById('setViewTitle').textContent=scheduleSets[currentSetId].name;document.getElementById('setViewStatus').textContent=scheduleSets[currentSetId].isActive?'ACTIVE':'INACTIVE';document.getElementById('setViewStatus').style.color=scheduleSets[currentSetId].isActive?'#388e3c':'var(--txt-muted)';renderTimers();if(!document.getElementById('renameSetPage').classList.contains('hidden'))document.getElementById('renameSetInput').value=scheduleSets[currentSetId].name;if(!document.getElementById('editTimerPage').classList.contains('hidden')){let t=scheduleSets[currentSetId].timers[currentTimerId];if(t&&t.enabled){document.getElementById('editTimerSetName').textContent=scheduleSets[currentSetId].name;document.getElementById('editTimerTime').value=t.time;document.getElementById('editTimerSource').value=t.source}}}updateNextEvent();return}let p=msg.split('|');if(p[0]==='SET'){let id=+p[1];if(id>=0&&id<MAX_SETS){scheduleSets[id].exists=p[2]==='1';scheduleSets[id].isActive=p[3]==='1';scheduleSets[id].name=p.slice(4).join('|')||('Set '+(id+1));if(!scheduleSets[id].timers)scheduleSets[id].timers=[]}}else if(p[0]==='TIMER'){let s=+p[1],t=+p[2];if(s>=0&&s<MAX_SETS&&t>=0&&t<MAX_TIMERS)scheduleSets[s].timers[t]={enabled:p[3]==='1',time:p[4],source:p[5]==='SOLAR'?'SOLAR':'GRID'}}}
-function requestSchedules(){if(client&&client.connected){scheduleSets=Array.from({length:MAX_SETS},(_,i)=>({exists:false,isActive:false,name:'Set '+(i+1),timers:[]}));send(TOPIC_SCHEDULE,'REQUEST')}}
+function updateSensors(d){try{localStorage.setItem(SENSOR_CACHE_KEY,JSON.stringify(d))}catch(e){}document.getElementById('gridV').textContent=Number(d.gridV||0).toFixed(1)+' V';document.getElementById('gridI').textContent=Number(d.gridI||0).toFixed(2)+' A';document.getElementById('gridP').textContent=Number(d.gridP||0).toFixed(1)+' W';document.getElementById('gridE').textContent=Number(d.gridE||0).toFixed(3)+' kWh';document.getElementById('solarV').textContent=Number(d.solarV||0).toFixed(1)+' V';document.getElementById('solarI').textContent=Number(d.solarI||0).toFixed(2)+' A';document.getElementById('solarP').textContent=Number(d.solarP||0).toFixed(1)+' W';document.getElementById('solarE').textContent=Number(d.solarE||0).toFixed(3)+' kWh'}
+// Cache only fully received schedule snapshots. MQTT updates are staged until END.
+const SCHEDULE_CACHE_KEY='poweriotCompleteScheduleV2';
+const SENSOR_CACHE_KEY='poweriotLastSensorsV2';
+let incomingSchedule=null;
+let scheduleRequestTimer=null;
+function emptySchedule(){return Array.from({length:MAX_SETS},(_,i)=>({exists:false,isActive:false,name:'Set '+(i+1),timers:[]}))}
+function restoreScheduleCache(){
+ try{
+  const raw=JSON.parse(localStorage.getItem(SCHEDULE_CACHE_KEY)||'null');
+  if(!raw||!Array.isArray(raw.sets)||raw.sets.length!==MAX_SETS)return;
+  scheduleSets=raw.sets.map((s,i)=>({exists:!!s.exists,isActive:!!s.isActive,name:String(s.name||('Set '+(i+1))),timers:Array.isArray(s.timers)?s.timers:[]}));
+  renderSets();updateNextEvent();
+  restoreScheduleDetail();
+ }catch(e){console.warn('Schedule cache invalid',e)}
+}
+function restoreScheduleDetail(){
+ if(currentSetId<0||currentSetId>=MAX_SETS||!scheduleSets[currentSetId]?.exists)return;
+ const set=scheduleSets[currentSetId];
+ document.getElementById('setViewTitle').textContent=set.name;
+ document.getElementById('setViewStatus').textContent=set.isActive?'ACTIVE':'INACTIVE';
+ document.getElementById('setViewStatus').style.color=set.isActive?'#388e3c':'var(--txt-muted)';
+ renderTimers();
+ if(!document.getElementById('renameSetPage').classList.contains('hidden'))document.getElementById('renameSetInput').value=set.name;
+ if(!document.getElementById('editTimerPage').classList.contains('hidden')){
+  const t=set.timers[currentTimerId];
+  if(t&&t.enabled){document.getElementById('editTimerSetName').textContent=set.name;document.getElementById('editTimerTime').value=t.time;document.getElementById('editTimerSource').value=t.source}
+ }
+}
+function cacheCompleteSchedule(){try{localStorage.setItem(SCHEDULE_CACHE_KEY,JSON.stringify({savedAt:Date.now(),sets:scheduleSets}))}catch(e){}}
+function stageScheduleStart(){
+ if(incomingSchedule)return; // Do not erase an in-progress transfer.
+ incomingSchedule=emptySchedule();
+ clearTimeout(scheduleRequestTimer);
+ scheduleRequestTimer=setTimeout(()=>{incomingSchedule=null;log('Schedule sync timed out; keeping last complete schedule')},15000);
+}
+function parseSchedule(msg){
+ if(msg==='END'){
+  if(!incomingSchedule)return;
+  clearTimeout(scheduleRequestTimer);scheduleRequestTimer=null;
+  scheduleSets=incomingSchedule;incomingSchedule=null;
+  cacheCompleteSchedule();
+  renderSets();restoreScheduleDetail();updateNextEvent();
+  return;
+ }
+ let p=msg.split('|');
+ if(p[0]!=='SET'&&p[0]!=='TIMER')return;
+ stageScheduleStart();
+ const target=incomingSchedule;
+ if(p[0]==='SET'){
+  let id=+p[1];if(id>=0&&id<MAX_SETS){target[id].exists=p[2]==='1';target[id].isActive=p[3]==='1';target[id].name=p.slice(4).join('|')||('Set '+(id+1))}
+ }else if(p[0]==='TIMER'){
+  let si=+p[1],ti=+p[2];
+  if(si>=0&&si<MAX_SETS&&ti>=0&&ti<MAX_TIMERS)target[si].timers[ti]={enabled:p[3]==='1',time:p[4],source:p[5]==='SOLAR'?'SOLAR':'GRID'};
+ }
+}
+function requestSchedules(){
+ if(client&&client.connected){
+  // Keep the displayed schedule untouched until the complete MQTT response arrives.
+  // A new REQUEST resets only the hidden staging buffer.
+  clearTimeout(scheduleRequestTimer);
+  incomingSchedule=emptySchedule();
+  scheduleRequestTimer=setTimeout(()=>{incomingSchedule=null;log('Schedule sync timed out; showing cached data')},15000);
+  send(TOPIC_SCHEDULE,'REQUEST');
+ }
+}
+
 function renderSets(){const box=document.getElementById('setsList');box.innerHTML='';let any=false;scheduleSets.forEach((s,i)=>{if(!s.exists)return;any=true;let timers=s.timers.filter(x=>x&&x.enabled).length;let d=document.createElement('div');d.className='set-card'+(s.isActive?' active-set':'');d.innerHTML='<div class="set-info"><div class="set-name">'+esc(s.name)+'</div><div class="set-meta"><span style="color:'+(s.isActive?'#388e3c':'var(--txt-muted)')+';font-weight:bold">'+(s.isActive?'ACTIVE':'Inactive')+'</span> - '+timers+' timer'+(timers!==1?'s':'')+'</div></div><div class="set-actions"><button class="btn" style="padding:8px 12px;font-size:12px" onclick="renameSet('+i+')">RENAME</button><button class="btn" style="padding:8px 12px;font-size:12px;background:#388e3c" onclick="openSet('+i+')">OPEN</button><button class="danger" style="padding:8px 12px;font-size:12px" onclick="deleteSet('+i+')">DELETE</button><label class="switch"><input type="checkbox" '+(s.isActive?'checked':'')+' onchange="toggleSet('+i+',this.checked)"><span class="slider slider-set"><span class="slider-text-left">OFF</span><span class="slider-text-right">ON</span></span></label></div>';box.appendChild(d)});if(!any)box.innerHTML='<p style="text-align:center;color:var(--txt-muted);padding:25px 0">No schedule sets yet.<br>Click <b>ADD NEW SET</b> below to create one.</p>'}
 function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
 function fastScheduleAction(command){
@@ -569,6 +633,6 @@ function deleteTimer(id){if(confirm('Delete this timer?'))fastScheduleAction('TI
 function renderTimers(){let body=document.getElementById('timersBody');body.innerHTML='';let arr=scheduleSets[currentSetId].timers.map((t,i)=>({t,i})).filter(x=>x.t&&x.t.enabled).sort((a,b)=>a.t.time.localeCompare(b.t.time));document.getElementById('noTimers').style.display=arr.length?'none':'block';arr.forEach(x=>{let tr=document.createElement('tr');tr.innerHTML='<td><b>'+esc(x.t.time)+'</b></td><td>'+esc(x.t.source)+'</td><td><div class="timer-actions"><button class="btn" style="padding:6px 12px;font-size:12px" onclick="editTimer('+x.i+')">EDIT</button><button class="danger" style="padding:6px 12px;font-size:12px" onclick="deleteTimer('+x.i+')">DELETE</button></div></td>';body.appendChild(tr)})}
 function updateNextEvent(){let active=scheduleSets.find(s=>s.exists&&s.isActive);let el=document.getElementById('nextSchedule'),dot=document.getElementById('dotNext');if(!active){el.textContent='--';dot.className='status-dot dot-event-inactive';return}let now=new Date(),cur=now.getHours()*60+now.getMinutes(),best=null;active.timers.filter(t=>t&&t.enabled).forEach(t=>{let [h,m]=t.time.split(':').map(Number),v=h*60+m;if(v>cur&&(!best||v<best.v))best={v,time:t.time,source:t.source}});if(!best){active.timers.filter(t=>t&&t.enabled).forEach(t=>{let [h,m]=t.time.split(':').map(Number),v=h*60+m;if(!best||v<best.v)best={v,time:t.time,source:t.source}})}el.textContent=best?best.time+' → '+best.source:'--';dot.className='status-dot '+(best?'dot-event-active':'dot-event-inactive')}
 function connectMQTT(){log('Connecting to HiveMQ Cloud...');let id='PowerIoT-Web-'+Math.random().toString(16).slice(2,10);client=mqtt.connect(`wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`,{username:MQTT_USERNAME,password:MQTT_PASSWORD,clientId:id,clean:true,reconnectPeriod:3000,connectTimeout:10000});client.on('connect',()=>{log('MQTT CONNECTED');let s=document.getElementById('connectionStatus');s.innerHTML='<span class="connection-dot"></span>CONNECTED';s.classList.add('connected');client.subscribe(TOPIC_STATUS);client.subscribe(TOPIC_SENSORS);client.subscribe(TOPIC_SCHEDULE_STATE);log('Subscribed to status');log('Subscribed to sensors');log('Subscribed to schedule state');requestSchedules()});client.on('message',(topic,message)=>{let data=message.toString();if(topic!==TOPIC_SENSORS&&topic!==TOPIC_STATUS)log('RX '+topic+' → '+data);if(topic===TOPIC_SCHEDULE_STATE){parseSchedule(data);return}try{let j=JSON.parse(data);if(topic===TOPIC_STATUS)updateStatus(j);if(topic===TOPIC_SENSORS)updateSensors(j)}catch(e){log('JSON ERROR')}});client.on('error',e=>log('MQTT ERROR: '+e.message));client.on('close',()=>{log('MQTT DISCONNECTED');let s=document.getElementById('connectionStatus');s.innerHTML='<span class="connection-dot"></span>DISCONNECTED';s.classList.remove('connected')})}
-setInterval(updateNextEvent,30000);window.addEventListener('load',async()=>{if(localStorage.getItem('darkMode')==='1')document.documentElement.classList.add('dark-mode');updateDarkModeLabels();try{const cached=JSON.parse(sessionStorage.getItem('poweriotLastStatus')||'null');if(cached)updateStatus(cached)}catch(e){}if(sessionValid()){let saved=null;try{saved=JSON.parse(sessionStorage.getItem('poweriotLastPage')||'null')}catch(e){};if(saved&&['dashboardPage','schedulePage','setViewPage','renameSetPage','editTimerPage','credentialsPage'].includes(saved.id)){currentSetId=Number.isInteger(saved.setId)?saved.setId:-1;currentTimerId=Number.isInteger(saved.timerId)?saved.timerId:-1;historyRestoring=true;showPage(saved.id);historyRestoring=false;appNavigationDepth=history.state?.poweriotPage?(history.state.depth||0):0;history.replaceState(pageSnapshot(saved.id),'','#'+saved.id)}else{historyRestoring=true;showDashboard();historyRestoring=false;history.replaceState(pageSnapshot('dashboardPage'),'','#dashboardPage')}startMQTT()}else{showLogin('')}});
+setInterval(updateNextEvent,30000);window.addEventListener('load',async()=>{if(localStorage.getItem('darkMode')==='1')document.documentElement.classList.add('dark-mode');updateDarkModeLabels();restoreScheduleCache();try{const sensor=JSON.parse(localStorage.getItem(SENSOR_CACHE_KEY)||'null');if(sensor)updateSensors(sensor)}catch(e){}try{const cached=JSON.parse(localStorage.getItem('poweriotLastStatus')||'null');if(cached)updateStatus(cached)}catch(e){}if(sessionValid()){let saved=null;try{saved=JSON.parse(sessionStorage.getItem('poweriotLastPage')||'null')}catch(e){};if(saved&&['dashboardPage','schedulePage','setViewPage','renameSetPage','editTimerPage','credentialsPage'].includes(saved.id)){currentSetId=Number.isInteger(saved.setId)?saved.setId:-1;currentTimerId=Number.isInteger(saved.timerId)?saved.timerId:-1;historyRestoring=true;showPage(saved.id);historyRestoring=false;appNavigationDepth=history.state?.poweriotPage?(history.state.depth||0):0;history.replaceState(pageSnapshot(saved.id),'','#'+saved.id)}else{historyRestoring=true;showDashboard();historyRestoring=false;history.replaceState(pageSnapshot('dashboardPage'),'','#dashboardPage')}restoreScheduleDetail();startMQTT()}else{showLogin('')}});
 </script>
 </body></html>
