@@ -2,516 +2,637 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 <title>PowerIoT Dashboard</title>
 <script src="https://unpkg.com/mqtt/dist/mqtt.min.js"></script>
+<script>if(localStorage.getItem('darkMode')==='1')document.documentElement.classList.add('dark-mode');</script>
 <style>
-:root{--bg:#f2f4f7;--card:#fff;--txt:#333;--bold:#111;--muted:#666;--border:#ccc;--panel:#f8f9fa;--shadow:0 2px 8px rgba(0,0,0,.08)}
-html.dark-mode{--bg:#121212;--card:#1e1e1e;--txt:#e0e0e0;--bold:#fff;--muted:#aaa;--border:#444;--panel:#2a2a2a;--shadow:0 2px 8px rgba(0,0,0,.3)}
+:root{--bg:#f2f4f7;--card:#fff;--txt:#333;--txt-bold:#111;--txt-muted:#666;--border:#ccc;--status-bg:#f8f9fa;}
+html.dark-mode{--bg:#121212;--card:#1e1e1e;--txt:#e0e0e0;--txt-bold:#fff;--txt-muted:#aaa;--border:#444;--status-bg:#2a2a2a;}
 *{box-sizing:border-box}
-body{font-family:Arial,sans-serif;background:var(--bg);margin:0;padding:15px;color:var(--txt);transition:.2s}
-.container{max-width:1000px;margin:auto}
-.card{background:var(--card);padding:20px;margin-bottom:15px;border-radius:12px;box-shadow:var(--shadow)}
-h1,h2,h3{margin-top:0;color:var(--bold)}
-h2{font-size:20px}
-.header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;position:relative}
-.settings-btn{font-size:24px;background:none;color:var(--bold);padding:0;width:42px;height:42px}
-.dropdown{position:absolute;right:0;top:45px;background:var(--card);border:1px solid var(--border);box-shadow:0 8px 16px rgba(0,0,0,.15);border-radius:8px;display:none;flex-direction:column;min-width:210px;z-index:100;overflow:hidden}
-.dropdown.show{display:flex}
-.dropdown a{padding:14px 16px;color:var(--txt);text-decoration:none;border-bottom:1px solid var(--border);font-size:14px;font-weight:bold;cursor:pointer}
-.dropdown a:last-child{border-bottom:0}
-.dropdown a:hover{background:var(--panel)}
-button,input,select{font:inherit}
-button{padding:11px 15px;border:0;border-radius:8px;cursor:pointer;font-size:14px;font-weight:bold;background:#1976d2;color:white}
-button:hover{filter:brightness(.94)}
-button:disabled{opacity:.45;cursor:not-allowed;filter:none}
-.btn-green{background:#388e3c}.btn-red{background:#d32f2f}.btn-orange{background:#ef6c00}.btn-gray{background:#64748b}.btn-teal{background:#00796b}.btn-outline{background:transparent;color:var(--txt);border:1px solid var(--border)}
-.status-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.status-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:var(--panel);min-width:0}
+body{font-family:Arial,sans-serif;background:var(--bg);margin:0;padding:15px;color:var(--txt);transition:.3s}
+.container{max-width:900px;margin:auto}
+.card{background:var(--card);padding:20px;margin-bottom:15px;border-radius:12px;box-shadow:0 2px 8px rgba(0,0,0,.08);transition:.3s}
+h1,h2,h3{margin-top:0;color:var(--txt-bold)}
+button{padding:12px 18px;border:0;border-radius:8px;margin:4px;cursor:pointer;font-size:15px;font-weight:bold;transition:.2s}
+.btn{background:#1976d2;color:white}.btn:hover{background:#115293}.danger{background:#d32f2f;color:white}.danger:hover{background:#9a0007}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px}
+.value{font-size:25px;font-weight:bold;color:#1976d2}.small{color:var(--txt-muted);font-size:14px;text-transform:uppercase;letter-spacing:.5px}
+input,select{padding:11px;margin:5px 0;border:1px solid var(--border);border-radius:7px;font-size:15px;background:var(--card);color:var(--txt);box-sizing:border-box}a{text-decoration:none;color:inherit}
+table{width:100%;border-collapse:collapse}td,th{padding:12px;border-bottom:1px solid var(--border);text-align:left}th{background:rgba(128,128,128,.05)}
+.header-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:15px;position:relative}.header-left{display:flex;align-items:center;gap:10px}
+.back-btn{font-size:30px;color:var(--txt-bold);text-decoration:none;display:flex;align-items:center;justify-content:center;width:48px;height:48px;border-radius:50%;transition:.2s;background:none;border:none;cursor:pointer}
+.back-btn:hover{background:rgba(128,128,128,.1)}.settings-btn{font-size:24px;background:none;border:none;cursor:pointer;padding:0;display:flex;align-items:center;justify-content:center;width:40px;height:40px;border-radius:50%;color:var(--txt-bold)}
+.settings-btn:hover{background:rgba(128,128,128,.1)}.dropdown{position:absolute;right:0;top:45px;background:var(--card);border:1px solid var(--border);box-shadow:0 8px 16px rgba(0,0,0,.15);border-radius:8px;display:none;flex-direction:column;min-width:210px;z-index:100;overflow:hidden}.dropdown.show{display:flex}.dropdown a{padding:14px 16px;color:var(--txt);border-bottom:1px solid var(--border);font-size:15px;font-weight:bold;cursor:pointer}.dropdown a:hover{background:rgba(128,128,128,.08)}.dropdown a:last-child{border-bottom:none}
+.status-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.status-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;background:var(--status-bg)}.status-item-full{grid-column:span 2}
+.status-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}.dot-on{background:#388e3c;box-shadow:0 0 8px #388e3c}.dot-off{background:#bdbdbd}.dot-grid{background:#1976d2;box-shadow:0 0 8px #1976d2}.dot-solar{background:#f57c00;box-shadow:0 0 8px #f57c00}.dot-manual{background:#757575;box-shadow:0 0 6px #757575}.dot-auto{background:#7b1fa2;box-shadow:0 0 8px #7b1fa2}.dot-sched-on{background:#00796b;box-shadow:0 0 8px #00796b}.dot-event-active{background:#388e3c;box-shadow:0 0 8px #388e3c}.dot-event-inactive{background:#bdbdbd}
+.status-info{display:flex;flex-direction:column}.status-name{font-size:12px;color:var(--txt-muted);text-transform:uppercase;letter-spacing:.5px}.status-val{font-size:16px;font-weight:bold;color:var(--txt-bold)}
+.switch-row{display:flex;align-items:center;justify-content:space-between;padding:14px 0;border-bottom:1px solid var(--border)}.switch-row:last-child{border-bottom:none}.switch-label{font-size:16px;font-weight:bold;color:var(--txt-bold)}.switch{position:relative;display:inline-block;width:110px;height:34px}.switch input{opacity:0;width:0;height:0}
+.slider{position:absolute;cursor:pointer;top:0;left:0;right:0;bottom:0;background:#ccc;transition:.3s;border-radius:34px;display:flex;align-items:center;justify-content:space-between;padding:0 12px}.slider:before{position:absolute;content:"";height:26px;width:48px;left:4px;bottom:4px;background:white;transition:.3s;border-radius:20px;box-shadow:0 2px 4px rgba(0,0,0,.2)}.slider-text-left,.slider-text-right{font-size:10px;font-weight:bold;color:white;z-index:1;pointer-events:none;text-transform:uppercase}
+input:checked+.slider-sys{background:#388e3c}input:checked+.slider-sys:before{transform:translateX(54px)}.slider-src{background:#1976d2}input:checked+.slider-src{background:#f57c00}input:checked+.slider-src:before{transform:translateX(54px)}input:checked+.slider-mode{background:#7b1fa2}input:checked+.slider-mode:before{transform:translateX(54px)}input:checked+.slider-sched{background:#00796b}input:checked+.slider-sched:before{transform:translateX(54px)}input:checked+.slider-set{background:#388e3c}input:checked+.slider-set:before{transform:translateX(54px)}.disabled-switch{opacity:.5;pointer-events:none}
+.set-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:15px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px;transition:.3s}.set-card.active-set{border:2px solid #388e3c;box-shadow:0 0 10px rgba(56,142,60,.2)}.set-info{flex:1;min-width:150px}.set-name{font-size:17px;font-weight:bold;color:var(--txt-bold);margin-bottom:4px}.set-meta{font-size:13px;color:var(--txt-muted)}.set-actions{display:flex;gap:6px;align-items:center;flex-wrap:wrap}.timer-actions{display:flex;gap:6px;flex-wrap:wrap}
+.log{background:#111827;color:#d1fae5;padding:15px;border-radius:10px;height:150px;overflow-y:auto;font-family:monospace;font-size:12px}
+.connection-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:12px}.connection{display:inline-flex;align-items:center;gap:7px;font-size:13px;font-weight:bold}.connection-dot{width:10px;height:10px;border-radius:50%;background:#d32f2f}.connection.connected .connection-dot{background:#388e3c;box-shadow:0 0 7px #388e3c}
+.schedule-note{color:var(--txt-muted);font-size:14px;margin-top:0}.hidden{display:none!important}
+.login-form .input-group{width:100%;margin-bottom:12px}.login-form input[type=text],.login-form input[type=password],.login-form input[type=time]{width:100%;padding:12px 14px;margin:0;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--txt)}
+
+/* LOGIN - MATCH ESP32 WEB SERVER */
+.login-page{min-height:calc(100vh - 30px);display:flex;align-items:flex-start;justify-content:center;padding-top:50px}
+.login-card{width:100%;max-width:380px;padding:25px;box-sizing:border-box}
+.login-title{text-align:center;margin-bottom:5px}.login-subtitle{text-align:center;color:var(--txt-muted);margin-bottom:20px;font-weight:normal}
+.login-form .input-group{width:100%;margin-bottom:12px;box-sizing:border-box}
+.login-form input[type=text],.login-form input[type=password]{width:100%;box-sizing:border-box;padding:12px 14px;margin:0;border:1px solid var(--border);border-radius:8px;font-size:15px;background:var(--card);color:var(--txt);outline:none;transition:border-color .2s}
+.login-form input:focus{border-color:#1976d2}.password-container{position:relative;width:100%;box-sizing:border-box}.password-container input{padding-right:45px!important}
+.eye-icon{position:absolute;right:10px;top:50%;transform:translateY(-50%);cursor:pointer;color:var(--txt-muted);display:flex;align-items:center;justify-content:center;width:30px;height:30px;user-select:none;transition:color .2s}.eye-icon svg{width:22px;height:22px;fill:currentColor}.eye-icon:hover{color:#1976d2}
+.login-error{margin:10px 0 0;padding:10px 14px;border-radius:8px;background:#fdecea;color:#c62828;border:1px solid #f5c6cb;font-size:14px;font-weight:bold;text-align:center;min-height:42px;box-sizing:border-box;display:flex;align-items:center;justify-content:center;visibility:hidden;opacity:0;transition:opacity .2s}.login-error.visible{visibility:visible;opacity:1;animation:shake .35s ease-in-out}
+html.dark-mode .login-error{background:#3b1a1a;color:#ff6b6b;border-color:#5c2a2a}@keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-6px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}100%{transform:translateX(0)}}
+.login-button{width:100%;margin-top:15px;margin-left:0;margin-right:0;padding:12px}.login-note{text-align:center;color:var(--txt-muted);font-size:12px;margin-top:14px}
+
+/* RENAME SET PAGE - KEEP SAME ESP32-STYLE FORM WIDTH ON PC AND MOBILE */
+#renameSetPage .login-form{width:100%;max-width:380px;margin:0 auto}
+#renameSetPage .login-button{display:block;width:100%}
+#renameSetInput{width:100%;box-sizing:border-box}
+/* EDIT TIMER PAGE - ESP32-STYLE FORM */
+#editTimerPage .edit-timer-form{width:100%;max-width:100%;margin:0 auto}
+#editTimerPage .edit-timer-form .input-group{width:100%;margin-bottom:12px}
+#editTimerPage .edit-timer-form input[type=time],#editTimerPage .edit-timer-form select{width:100%;box-sizing:border-box;padding:12px 14px;margin:0;border:1px solid var(--border);border-radius:8px;font-size:15px;background:var(--card);color:var(--txt);outline:none}
+#editTimerPage .edit-actions{display:flex;gap:18px;flex-wrap:wrap;margin-top:8px}
+#editTimerPage .edit-actions button{margin:0}
+@media(max-width:430px){#editTimerPage .edit-actions{gap:12px}#editTimerPage .edit-actions button{flex:1 1 140px}}
+
+/* RESPONSIVE LAYOUT - SAME POSITIONING ON PC AND MOBILE */
+.status-grid{grid-template-columns:1fr 1fr}
 .status-item-full{grid-column:span 2}
-.status-dot{width:12px;height:12px;border-radius:50%;flex-shrink:0}
-.dot-on{background:#388e3c;box-shadow:0 0 8px #388e3c}.dot-off{background:#bdbdbd}.dot-grid{background:#1976d2}.dot-solar{background:#f57c00}.dot-manual{background:#757575}.dot-auto{background:#7b1fa2}.dot-sched-on{background:#00796b}
-.status-info{display:flex;flex-direction:column;min-width:0}
-.status-name,.small{font-size:12px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px}
-.status-val{font-size:16px;font-weight:bold;color:var(--bold);overflow-wrap:anywhere}
-.connection-row{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-top:13px}
-.connection{display:inline-flex;align-items:center;gap:7px;font-size:12px;font-weight:bold}
-.connection-dot{width:10px;height:10px;border-radius:50%;background:#d32f2f}
-.connection.connected .connection-dot{background:#388e3c;box-shadow:0 0 7px #388e3c}
-.switch-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:14px 0;border-bottom:1px solid var(--border)}
-.switch-row:last-child{border-bottom:0}
-.switch-label{font-size:15px;font-weight:bold;color:var(--bold)}
-.switch{position:relative;display:inline-block;width:110px;height:34px;flex-shrink:0}
-.switch input{opacity:0;width:0;height:0}
-.slider{position:absolute;cursor:pointer;inset:0;background:#ccc;transition:.25s;border-radius:34px;display:flex;align-items:center;justify-content:space-between;padding:0 12px}
-.slider:before{position:absolute;content:"";height:26px;width:48px;left:4px;bottom:4px;background:white;transition:.25s;border-radius:20px;box-shadow:0 2px 4px rgba(0,0,0,.2)}
-.slider-text-left,.slider-text-right{font-size:10px;font-weight:bold;color:white;z-index:1;pointer-events:none}
-input:checked+.slider-sys{background:#388e3c}input:checked+.slider-sys:before{transform:translateX(54px)}
-.slider-src{background:#1976d2}input:checked+.slider-src{background:#f57c00}input:checked+.slider-src:before{transform:translateX(54px)}
-input:checked+.slider-mode{background:#757575}input:checked+.slider-mode:before{transform:translateX(54px)}
-input:checked+.slider-sched{background:#00796b}input:checked+.slider-sched:before{transform:translateX(54px)}
-.disabled-switch{opacity:.45;pointer-events:none}
-.monitor-title{display:flex;align-items:center;gap:8px}
-.monitor-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:15px}
-.monitor-box{background:var(--panel);border-radius:10px;padding:16px;text-align:center;min-width:0}
-.monitor-box h3{font-size:14px;margin:0 0 8px}
-.value{font-size:24px;font-weight:bold;color:#1976d2;overflow-wrap:anywhere}
-.schedule-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:14px}
-.schedule-set{border:1px solid var(--border);border-radius:10px;padding:14px;margin-top:12px;background:var(--panel)}
-.set-head{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap}
-.set-title{font-size:16px;font-weight:bold;color:var(--bold);overflow-wrap:anywhere}
-.set-actions{display:flex;gap:7px;flex-wrap:wrap}
-.timer-list{display:grid;gap:8px;margin-top:12px}
-.timer-row{display:grid;grid-template-columns:1fr auto auto;align-items:center;gap:8px;padding:10px;background:var(--card);border:1px solid var(--border);border-radius:8px}
-.timer-main{min-width:0}
-.timer-time{font-size:16px;font-weight:bold;color:var(--bold)}
-.timer-meta{font-size:12px;color:var(--muted);margin-top:3px}
-.timer-actions{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
-.timer-actions button{padding:8px 10px;font-size:12px}
-.active-tag{font-size:11px;background:#00796b;color:#fff;padding:4px 8px;border-radius:20px}
-.empty{padding:16px;text-align:center;color:var(--muted);font-size:14px}
-.log{background:#111827;color:#d1fae5;padding:13px;border-radius:10px;height:145px;overflow-y:auto;font:12px monospace;overflow-wrap:anywhere}
-.modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:500;align-items:center;justify-content:center;padding:15px}
-.modal-backdrop.show{display:flex}
-.modal{background:var(--card);color:var(--txt);width:min(420px,100%);padding:20px;border-radius:12px;box-shadow:0 10px 35px rgba(0,0,0,.3)}
-.modal label{display:block;font-size:13px;font-weight:bold;margin:12px 0 5px}
-.modal input,.modal select{width:100%;padding:11px;border:1px solid var(--border);border-radius:7px;background:var(--bg);color:var(--txt)}
-.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:18px}
-.notice{font-size:13px;color:var(--muted);line-height:1.5}
-.warning{display:none;color:#d32f2f;font-weight:bold;margin-bottom:10px;font-size:13px}
-footer{text-align:center;color:var(--muted);font-size:12px;padding:10px}
-@media(max-width:650px){body{padding:9px}.card{padding:15px}.status-grid{grid-template-columns:1fr}.status-item-full{grid-column:span 1}.monitor-grid{grid-template-columns:1fr 1fr}.switch-label{font-size:14px}.timer-row{grid-template-columns:1fr auto}.timer-actions{grid-column:1/-1;justify-content:flex-start}.set-actions button{padding:9px 10px;font-size:12px}}
-@media(max-width:390px){.monitor-grid{grid-template-columns:1fr}.switch{width:105px}.value{font-size:22px}}
+.switch{width:110px;height:34px;flex:0 0 110px}
+.switch-label{font-size:16px}
+.set-card{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px}
+.set-actions{display:flex;align-items:center;justify-content:flex-end;flex-wrap:nowrap;gap:6px}
+@media(max-width:650px){
+  body{padding:10px}
+  /* Schedule Sets: keep the set information on top and move all controls below it */
+  .set-card{display:flex;flex-direction:column;align-items:stretch;gap:12px}
+  .set-info{width:100%;min-width:0}
+  .set-actions{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;align-items:center}
+  .set-actions button{width:100%;margin:0;padding:10px 6px;font-size:13px}
+  .set-actions .switch{grid-column:1 / -1;justify-self:start;margin-top:2px}
+  /* Active Timers: fit the table to the phone screen; no forced 520px width */
+  .table-wrap{overflow:visible;width:100%}
+  .timers-table{width:100%;table-layout:fixed}
+  .timers-table th,.timers-table td{padding:9px 6px;font-size:13px;vertical-align:middle}
+  .timers-table th:nth-child(1),.timers-table td:nth-child(1){width:24%}
+  .timers-table th:nth-child(2),.timers-table td:nth-child(2){width:24%}
+  .timers-table th:nth-child(3),.timers-table td:nth-child(3){width:52%}
+  .timer-actions{justify-content:flex-start;align-items:flex-start;gap:4px;flex-wrap:nowrap}
+  .timers-table td:nth-child(3){vertical-align:top}
+  .timer-actions button{margin:0;padding:8px 7px!important;font-size:11px!important;min-width:0}
+
+  .container{width:100%;max-width:900px;margin:0 auto}
+  .card{padding:20px;margin-bottom:15px}
+  .header-row{margin-bottom:15px}
+  .status-grid{grid-template-columns:1fr 1fr;gap:8px}
+  .status-item{padding:10px 10px;min-width:0}
+  .status-name{font-size:11px}
+  .status-val{font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .switch-row{padding:14px 0;gap:10px}
+  .switch-label{font-size:15px;line-height:1.25}
+  .switch{width:105px;height:34px;flex-basis:105px}
+  .slider:before{width:45px}
+  input:checked+.slider-sys:before,input:checked+.slider-src:before,input:checked+.slider-mode:before,input:checked+.slider-sched:before,input:checked+.slider-set:before{transform:translateX(52px)}
+  .set-card{grid-template-columns:minmax(0,1fr) auto;padding:15px}
+  .set-actions{justify-content:flex-end;gap:4px}
+  .set-actions button{margin:2px;padding:10px 12px;font-size:14px}
+  .dropdown{right:0;min-width:210px}
+  /* overridden above for Active Timers */
+}
+@media(max-width:430px){
+  .switch-label{font-size:14px}
+  .switch{width:100px;flex-basis:100px}
+  .slider:before{width:43px}
+  input:checked+.slider-sys:before,input:checked+.slider-src:before,input:checked+.slider-mode:before,input:checked+.slider-sched:before,input:checked+.slider-set:before{transform:translateX(49px)}
+  .status-item{padding:9px 8px}
+  .status-val{font-size:14px}
+  .set-card{grid-template-columns:1fr;}
+  .set-actions{justify-content:flex-start;flex-wrap:wrap}
+}
+
+/* ESP32 MOBILE LAYOUT MATCH — SCHEDULE SETS AND ACTIVE TIMERS */
+@media (max-width:650px){
+  #schedulePage .set-card{
+    display:flex!important;flex-direction:column!important;align-items:stretch!important;
+    gap:13px!important;padding:14px!important;margin-bottom:10px!important;
+    border:1px solid var(--border);border-radius:10px;
+  }
+  #schedulePage .set-info{width:100%!important;min-width:0!important;flex:auto!important}
+  #schedulePage .set-name{font-size:17px!important;margin-bottom:4px!important}
+  #schedulePage .set-meta{font-size:13px!important}
+  #schedulePage .set-actions{
+    display:flex!important;flex-direction:row!important;flex-wrap:wrap!important;
+    justify-content:flex-start!important;align-items:center!important;
+    width:100%!important;gap:8px 12px!important;
+  }
+  #schedulePage .set-actions button{
+    width:auto!important;flex:none!important;margin:0!important;
+    padding:9px 12px!important;font-size:12px!important;
+    font-weight:bold!important;line-height:1.1!important;border-radius:8px!important;
+    min-height:34px!important;
+  }
+  #schedulePage .set-actions .switch{
+    flex:0 0 96px!important;width:96px!important;height:34px!important;
+    margin:0!important;margin-top:0!important;
+    grid-column:auto!important;
+    /* Put the selector below the three action buttons */
+  }
+  #schedulePage .set-actions::before{content:'';flex-basis:100%;height:0;order:1}
+  #schedulePage .set-actions .switch{order:2}
+  #schedulePage .set-actions button{order:0}
+  #setViewPage .table-wrap{width:100%!important;overflow-x:auto!important}
+  #setViewPage .timers-table{width:100%!important;table-layout:fixed!important;border-collapse:collapse!important}
+  #setViewPage .timers-table th,#setViewPage .timers-table td{
+    padding:15px 10px!important;font-size:14px!important;
+    text-align:left!important;vertical-align:middle!important;
+  }
+  #setViewPage .timers-table th:nth-child(1),#setViewPage .timers-table td:nth-child(1){width:22%!important}
+  #setViewPage .timers-table th:nth-child(2),#setViewPage .timers-table td:nth-child(2){width:25%!important}
+  #setViewPage .timers-table th:nth-child(3),#setViewPage .timers-table td:nth-child(3){width:53%!important}
+  #setViewPage .timer-actions{display:flex!important;flex-wrap:nowrap!important;gap:10px!important;justify-content:flex-start!important;align-items:center!important}
+  #setViewPage .timer-actions button{
+    flex:0 0 auto!important;margin:0!important;padding:9px 10px!important;
+    font-size:11px!important;line-height:1.1!important;min-width:0!important;
+    border-radius:8px!important;
+  }
+}
+@media (max-width:380px){
+  #setViewPage .timers-table th,#setViewPage .timers-table td{padding:13px 7px!important;font-size:13px!important}
+  #setViewPage .timer-actions{gap:7px!important}
+  #setViewPage .timer-actions button{padding:9px 8px!important;font-size:10px!important}
+}
+
+/* Match ESP32 screenshots: full-width forms, header gear and buttons */
+#credentialsPage .header-row, #renameSetPage .header-row{margin-bottom:28px}
+#credentialsPage .card, #renameSetPage .card{padding:20px}
+#credentialsPage .card h2{font-size:24px;margin:0 0 22px}
+#credentialsPage .credentials-form,#renameSetPage .rename-form{width:100%;max-width:none;margin:0}
+#credentialsPage .credentials-form .input-group{margin-bottom:12px}
+#credentialsPage .credentials-form input,#renameSetPage .rename-form input{display:block;width:100%;padding:12px 14px;font-size:16px;border:1px solid var(--border);border-radius:8px;background:var(--card);color:var(--txt);box-sizing:border-box}
+#credentialsPage .credentials-form button,#renameSetPage .rename-form button{width:auto;display:inline-block;margin:24px 0 0;padding:13px 20px}
+#renameSetPage .form-title{display:block;font-size:16px;font-weight:bold;margin-bottom:6px;color:var(--txt)}
+#credentialsPage .login-error:not(.visible),#renameSetPage .login-error:not(.visible){display:none}
+#credentialsPage .header-row .settings-btn{margin-left:auto}
+@media(max-width:650px){#credentialsPage .card h2{font-size:23px}}
 </style>
-<script>
-if(localStorage.getItem("darkMode")==="1")document.documentElement.classList.add("dark-mode");
-</script>
 </head>
 <body>
 <div class="container">
+
+<!-- LOGIN PAGE - MATCHED TO ESP32 LOGIN -->
+<section id="loginPage" class="login-page">
+  <div class="card login-card">
+    <h1 class="login-title">PowerIoT</h1>
+    <h3 class="login-subtitle">Device Login</h3>
+    <form id="loginForm" class="login-form" onsubmit="return handleRemoteLogin(event)">
+      <div class="input-group"><input type="text" id="loginUsername" placeholder="Username" autocomplete="username" required></div>
+      <div class="input-group">
+        <div class="password-container">
+          <input type="password" id="loginPassword" placeholder="Password" autocomplete="current-password" required>
+          <span class="eye-icon" onclick="toggleLoginPassword()">
+            <svg id="eyeOpen" viewBox="0 0 24 24"><path d="M12 4.5C7 4.5 2.73 7.61 1 12c1.73 4.39 6 7.5 11 7.5s9.27-3.11 11-7.5c-1.73-4.39-6-7.5-11-7.5zM12 17c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5zm0-8c-1.66 0-3 1.34-3 3s1.34 3 3 3 3-1.34 3-3-1.34-3-3-3z"/></svg>
+            <svg id="eyeClosed" style="display:none" viewBox="0 0 24 24"><path d="M2 4.27l2.28 2.28.46.46C3.08 8.3 1.78 10.02 1 12c1.73 4.39 6 7.5 11 7.5 1.55 0 3.03-.3 4.38-.84l.42.42L19.73 22 21 20.73 3.27 3 2 4.27zM7.53 9.8l1.55 1.55c-.05.21-.08.43-.08.65 0 1.66 1.34 3 3 3 .22 0 .44-.03.65-.08l1.55 1.55c-.67.33-1.41.53-2.2.53-2.76 0-5-2.24-5-5 0-.79.2-1.53.53-2.2z"/></svg>
+          </span>
+        </div>
+      </div>
+      <div id="loginError" class="login-error">&nbsp;</div>
+      <button class="btn login-button" type="submit">LOGIN</button>
+    </form>
+  </div>
+</section>
+
+<!-- EXACT MAIN ESP32 DASHBOARD LAYOUT -->
+<section id="dashboardPage" class="hidden">
   <div class="header-row">
-    <h1 style="margin:0;font-size:25px">⚡ PowerIoT Dashboard</h1>
-    <button class="settings-btn" onclick="toggleMenu()" aria-label="Settings">&#9881;</button>
+    <h1 style="margin:0;">PowerIoT Dashboard</h1>
+    <button class="settings-btn" onclick="toggleMenu()">&#9881;</button>
     <div id="settingsMenu" class="dropdown">
-      <a id="darkModeToggle" onclick="toggleDarkMode()">Toggle Dark Mode</a>
+      <a onclick="openCredentials()">Device Credentials</a>
+      <a onclick="toggleDarkMode()" id="darkModeToggle">Toggle Dark Mode</a>
       <a onclick="showDeviceInfo()">Device Connection</a>
+      <a onclick="remoteLogout()">Logout</a>
     </div>
   </div>
 
-  <section class="card">
-    <div class="status-grid">
-      <div class="status-item"><span id="dotSystem" class="status-dot dot-off"></span><div class="status-info"><span class="status-name">System</span><span id="systemStatus" class="status-val">WAITING...</span></div></div>
-      <div class="status-item"><span id="dotSource" class="status-dot dot-grid"></span><div class="status-info"><span class="status-name">Active Source</span><span id="sourceStatus" class="status-val">---</span></div></div>
-      <div class="status-item"><span id="dotMode" class="status-dot dot-manual"></span><div class="status-info"><span class="status-name">Operation Mode</span><span id="modeStatus" class="status-val">---</span></div></div>
-      <div class="status-item"><span id="dotSchedule" class="status-dot dot-off"></span><div class="status-info"><span class="status-name">Scheduling</span><span id="scheduleStatus" class="status-val">---</span></div></div>
-      <div class="status-item status-item-full"><span id="dotNext" class="status-dot dot-off"></span><div class="status-info"><span class="status-name">Next Scheduled Event</span><span id="nextSchedule" class="status-val">--</span></div></div>
-    </div>
-    <div class="connection-row"><span class="small">Remote MQTT Connection</span><span id="connectionStatus" class="connection"><span class="connection-dot"></span>DISCONNECTED</span></div>
-  </section>
-
-  <section class="card">
-    <h2>Device Controls</h2>
-    <div id="scheduleWarning" class="warning">WARNING: Main controls are locked while Scheduling is Active.</div>
-    <div id="controls">
-      <div class="switch-row"><span class="switch-label">System On/Off</span><label class="switch"><input type="checkbox" id="sysToggle" onchange="toggleControl('system')"><span class="slider slider-sys"><span class="slider-text-left">OFF</span><span class="slider-text-right">ON</span></span></label></div>
-      <div class="switch-row"><span class="switch-label">Power Source</span><label class="switch"><input type="checkbox" id="srcToggle" onchange="toggleControl('source')"><span class="slider slider-src"><span class="slider-text-left">GRID</span><span class="slider-text-right">SOLAR</span></span></label></div>
-      <div class="switch-row"><span class="switch-label">Operation Mode</span><label class="switch"><input type="checkbox" id="modeToggle" onchange="toggleControl('mode')"><span class="slider slider-mode"><span class="slider-text-left">MAN</span><span class="slider-text-right">AUTO</span></span></label></div>
-      <div class="switch-row"><span class="switch-label">Time Scheduling</span><label class="switch"><input type="checkbox" id="schedToggle" onchange="toggleControl('scheduling')"><span class="slider slider-sched"><span class="slider-text-left">OFF</span><span class="slider-text-right">ON</span></span></label></div>
-    </div>
-  </section>
-
-  <section class="card">
-    <div class="monitor-title"><h2 style="margin:0">🔌 Grid Utility</h2></div>
-    <div class="monitor-grid">
-      <div class="monitor-box"><h3>Voltage</h3><div class="value"><span id="gridV">0.00</span> V</div></div>
-      <div class="monitor-box"><h3>Current</h3><div class="value"><span id="gridI">0.00</span> A</div></div>
-      <div class="monitor-box"><h3>Power</h3><div class="value"><span id="gridP">0.00</span> W</div></div>
-      <div class="monitor-box"><h3>Energy</h3><div class="value"><span id="gridE">0.000</span> kWh</div></div>
-    </div>
-  </section>
-
-  <section class="card">
-    <div class="monitor-title"><h2 style="margin:0">☀️ Solar Inverter</h2></div>
-    <div class="monitor-grid">
-      <div class="monitor-box"><h3>Voltage</h3><div class="value"><span id="solarV">0.00</span> V</div></div>
-      <div class="monitor-box"><h3>Current</h3><div class="value"><span id="solarI">0.00</span> A</div></div>
-      <div class="monitor-box"><h3>Power</h3><div class="value"><span id="solarP">0.00</span> W</div></div>
-      <div class="monitor-box"><h3>Energy</h3><div class="value"><span id="solarE">0.000</span> kWh</div></div>
-    </div>
-  </section>
-
-  <section class="card" id="scheduleSection">
-    <h2>Time Scheduling</h2>
-    <p class="notice">Ang schedule sets at timers ay isi-sync mula sa ESP32. Isang set lang ang puwedeng maging active sa isang pagkakataon. Ang pagbabago rito ay ipapadala sa ESP32 sa pamamagitan ng MQTT.</p>
-    <div class="schedule-toolbar">
-      <button class="btn-teal" onclick="addScheduleSet()">＋ Add Schedule Set</button>
-      <button class="btn-outline" onclick="requestScheduleState()">↻ Sync Schedules</button>
-      <span id="scheduleSyncStatus" class="small">Waiting for schedule data...</span>
-    </div>
-    <div id="scheduleSets"><div class="empty">Connecting to ESP32 schedule data...</div></div>
-  </section>
-
-  <section class="card">
-    <h2>Remote Connection Log</h2>
-    <div id="log" class="log"></div>
-  </section>
-  <footer>PowerIoT — IoT-Based Hybrid Solar-Grid Energy Manager</footer>
-</div>
-
-<div id="editModal" class="modal-backdrop">
-  <div class="modal">
-    <h2 id="modalTitle">Schedule Timer</h2>
-    <label for="timerTime">Time (24-hour)</label><input id="timerTime" type="time" value="08:00">
-    <label for="timerSource">Power Source</label><select id="timerSource"><option value="GRID">GRID</option><option value="SOLAR">SOLAR</option></select>
-    <div class="modal-actions"><button class="btn-outline" onclick="closeTimerModal()">Cancel</button><button onclick="saveTimerModal()">Save Timer</button></div>
+  <div class="card"><div class="status-grid">
+    <div class="status-item"><div id="dotSystem" class="status-dot dot-off"></div><div class="status-info"><span class="status-name">System</span><span id="systemStatus" class="status-val">OFF</span></div></div>
+    <div class="status-item"><div id="dotSource" class="status-dot dot-grid"></div><div class="status-info"><span class="status-name">Power Source</span><span id="sourceStatus" class="status-val">GRID</span></div></div>
+    <div class="status-item"><div id="dotMode" class="status-dot dot-manual"></div><div class="status-info"><span class="status-name">Operation Mode</span><span id="modeStatus" class="status-val">MANUAL</span></div></div>
+    <div class="status-item"><div id="dotSchedule" class="status-dot dot-off"></div><div class="status-info"><span class="status-name">Scheduling</span><span id="scheduleStatus" class="status-val">INACTIVE</span></div></div>
+    <div class="status-item status-item-full"><div id="dotNext" class="status-dot dot-event-inactive"></div><div class="status-info"><span class="status-name">Next Scheduled Event</span><span id="nextSchedule" class="status-val">--</span></div></div>
   </div>
+
+  <span id="connectionStatus" class="connection hidden" aria-hidden="true"><span class="connection-dot"></span>DISCONNECTED</span>
+  </div>
+
+  <div class="card"><h2>Device Controls</h2>
+    <div id="scheduleWarning" style="display:none;color:#d32f2f;font-weight:bold;margin-bottom:8px;">WARNING: Controls are locked because Scheduling is Active.</div>
+    <div class="switch-row" id="rowSystem"><span class="switch-label">System On/Off</span><label class="switch"><input type="checkbox" id="sysToggle" onchange="toggleControl('system')"><span class="slider slider-sys"><span class="slider-text-left">OFF</span><span class="slider-text-right">ON</span></span></label></div>
+    <div class="switch-row" id="rowSource"><span class="switch-label">Power Source</span><label class="switch"><input type="checkbox" id="srcToggle" onchange="toggleControl('source')"><span class="slider slider-src"><span class="slider-text-left">GRID</span><span class="slider-text-right">SOLAR</span></span></label></div>
+    <div class="switch-row" id="rowMode"><span class="switch-label">Operation Mode</span><label class="switch"><input type="checkbox" id="modeToggle" onchange="toggleControl('mode')"><span class="slider slider-mode"><span class="slider-text-left">MAN</span><span class="slider-text-right">AUTO</span></span></label></div>
+    <div class="switch-row"><span class="switch-label">Time Scheduling</span><label class="switch"><input type="checkbox" id="schedToggle" onchange="toggleControl('scheduling')"><span class="slider slider-sched"><span class="slider-text-left">OFF</span><span class="slider-text-right">ON</span></span></label></div>
+  </div>
+
+  <div class="card"><h2>GRID UTILITY SENSOR</h2><div class="grid">
+    <div><div class="small">Voltage</div><div class="value" id="gridV">0.0 V</div></div><div><div class="small">Current</div><div class="value" id="gridI">0.00 A</div></div><div><div class="small">Power</div><div class="value" id="gridP">0.0 W</div></div><div><div class="small">Energy Accumulation</div><div class="value" id="gridE">0.000 kWh</div></div>
+  </div></div>
+
+  <div class="card"><h2>SOLAR INVERTER SENSOR</h2><div class="grid">
+    <div><div class="small">Voltage</div><div class="value" id="solarV">0.0 V</div></div><div><div class="small">Current</div><div class="value" id="solarI">0.00 A</div></div><div><div class="small">Power</div><div class="value" id="solarP">0.0 W</div></div><div><div class="small">Energy Accumulation</div><div class="value" id="solarE">0.000 kWh</div></div>
+  </div></div>
+
+  <div class="card" style="text-align:center"><button class="btn" style="width:100%;margin:0" onclick="openSchedules()">SETUP &amp; SCHEDULES</button></div>
+</section>
+
+<!-- REMOTE COPY OF ESP32 /settings PAGE -->
+<!-- DEVICE CREDENTIALS PAGE -->
+<section id="credentialsPage" class="hidden">
+  <div class="header-row">
+    <div class="header-left"><button class="back-btn" onclick="backToDashboard()">&#8592;</button><h1 style="margin:0">Credentials</h1></div>
+    <button class="settings-btn" onclick="toggleCredentialsMenu()">&#9881;</button>
+    <div id="credentialsMenu" class="dropdown">
+      <a onclick="openCredentials()">Device Credentials</a>
+      <a onclick="toggleDarkMode()" id="darkModeToggleCredentials">Toggle Dark Mode</a>
+      <a onclick="showDeviceInfo()">Device Connection</a>
+      <a onclick="remoteLogout()">Logout</a>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Change Account Setup</h2>
+    <form onsubmit="return saveRemoteCredentials(event)" class="login-form credentials-form">
+      <div class="input-group"><input id="newUsername" type="text" placeholder="New username" required maxlength="32" autocomplete="off"></div>
+      <div class="input-group"><input id="newPassword" type="password" placeholder="New password" required minlength="4" maxlength="64" autocomplete="new-password"></div>
+      <div id="credentialMessage" class="login-error">&nbsp;</div>
+      <button class="btn" type="submit">SAVE ACCOUNT</button>
+    </form>
+  </div>
+</section>
+
+<section id="schedulePage" class="hidden">
+  <div class="header-row"><div class="header-left"><button class="back-btn" onclick="showPage('dashboardPage')">&#8592;</button><h1 style="margin:0">Schedule Sets</h1></div><button class="settings-btn" onclick="toggleMenu2()">&#9881;</button><div id="scheduleMenu" class="dropdown"><a onclick="openCredentials()">Device Credentials</a><a onclick="toggleDarkMode()" id="darkModeToggleSchedule">Toggle Dark Mode</a><a onclick="showDeviceInfo()">Device Connection</a><a onclick="remoteLogout()">Logout</a></div></div>
+  <div class="card"><h2>My Schedule Sets</h2><p class="schedule-note">Create multiple sets for 24hr scheduling. Only <b>ONE</b> set can be active at a time.</p><div id="setsList"></div><div style="margin-top:15px;text-align:center"><button class="btn" onclick="addSet()">ADD NEW SET</button></div></div>
+</section>
+
+<!-- RENAME SET PAGE - MATCH ESP32 STYLE -->
+<section id="renameSetPage" class="hidden">
+  <div class="header-row">
+    <div class="header-left"><button class="back-btn" onclick="cancelRenameSet()">&#8592;</button><h1 style="margin:0">Rename Set</h1></div>
+  </div>
+  <div class="card">
+    <form onsubmit="return saveRenameSet(event)" class="rename-form">
+      <label for="renameSetInput" class="form-title">Set Name (max 32 chars):</label>
+      <input id="renameSetInput" type="text" placeholder="Set Name" maxlength="32" required>
+      <div id="renameSetMessage" class="login-error">&nbsp;</div>
+      <button class="btn" type="submit">SAVE NAME</button>
+    </form>
+  </div>
+</section>
+
+<!-- EDIT TIMER PAGE - MATCH ESP32-STYLE EDIT FORM -->
+<section id="editTimerPage" class="hidden">
+  <div class="header-row">
+    <div class="header-left">
+      <button class="back-btn" onclick="cancelEditTimer()">&#8592;</button>
+      <h1 style="margin:0">Edit Timer</h1>
+    </div>
+    <button class="settings-btn" onclick="toggleMenu4()">&#9881;</button>
+    <div id="editTimerMenu" class="dropdown">
+      <a onclick="openCredentials()">Device Credentials</a>
+      <a onclick="toggleDarkMode()" id="darkModeToggleEdit">Toggle Dark Mode</a>
+      <a onclick="showDeviceInfo()">Device Connection</a>
+      <a onclick="remoteLogout()">Logout</a>
+    </div>
+  </div>
+  <div class="card">
+    <h2>Edit Timer</h2>
+    <p style="font-size:16px;color:var(--txt-muted);margin:0 0 22px">Set: <b id="editTimerSetName" style="color:var(--txt-bold)">Set 1</b></p>
+    <form class="edit-timer-form" onsubmit="return saveEditTimer(event)">
+      <div class="input-group">
+        <label style="font-weight:bold;display:block;margin-bottom:8px">Target Time:</label>
+        <input type="time" id="editTimerTime" required>
+      </div>
+      <div class="input-group">
+        <label style="font-weight:bold;display:block;margin-bottom:8px">Trigger Source:</label>
+        <select id="editTimerSource">
+          <option value="GRID">GRID</option>
+          <option value="SOLAR">SOLAR</option>
+        </select>
+      </div>
+      <div id="editTimerMessage" class="login-error">&nbsp;</div>
+      <div class="edit-actions">
+        <button class="btn" type="submit">SAVE CHANGES</button>
+        <button class="danger" type="button" onclick="cancelEditTimer()">CANCEL</button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- REMOTE COPY OF ESP32 /set/view PAGE -->
+<section id="setViewPage" class="hidden">
+  <div class="header-row"><div class="header-left"><button class="back-btn" onclick="openSchedules()">&#8592;</button><h1 id="setViewTitle" style="margin:0">Schedule Set</h1></div><button class="settings-btn" onclick="toggleMenu3()">&#9881;</button><div id="setMenu" class="dropdown"><a onclick="openCredentials()">Device Credentials</a><a onclick="toggleDarkMode()" id="darkModeToggleSet">Toggle Dark Mode</a><a onclick="showDeviceInfo()">Device Connection</a><a onclick="remoteLogout()">Logout</a></div></div>
+  <div class="card"><div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px"><div><div class="small">Status</div><div id="setViewStatus" style="font-size:20px;font-weight:bold">INACTIVE</div></div><div><button class="btn" onclick="renameCurrentSet()">RENAME</button></div></div></div>
+  <div class="card"><h2>Add Timer</h2><div class="login-form"><div class="input-group"><label style="font-weight:bold;display:block;margin-bottom:5px">Target Time:</label><input type="time" id="newTimerTime" required></div><div class="input-group"><label style="font-weight:bold;display:block;margin-bottom:5px">Trigger Source:</label><select id="newTimerSource" style="width:100%;margin:0;padding:12px 14px"><option value="GRID">GRID</option><option value="SOLAR">SOLAR</option></select></div><button class="btn" style="margin-left:0;margin-top:15px" onclick="addTimer()">ADD TIMER</button></div></div>
+  <div class="card"><h2>Active Timers</h2><div class="table-wrap"><table class="timers-table"><thead><tr><th>Time</th><th>Source</th><th>Actions</th></tr></thead><tbody id="timersBody"></tbody></table></div><p id="noTimers" style="text-align:center;color:var(--txt-muted);padding:20px 0;display:none">No timers yet. Add one above.</p></div>
+</section>
+
+<div class="card"><h2>Remote Connection Log</h2><div id="log" class="log"></div></div>
 </div>
 
 <script>
-/* =========================================================
-   HIVEMQ CLOUD SETTINGS
-   Ilagay ang tamang broker username/password na ginagamit ng
-   ESP32. Huwag i-upload publicly ang file na may real password.
-   ========================================================= */
-const MQTT_HOST = "640ee0af2af541f89544aaaba49f7711.s1.eu.hivemq.cloud";
-const MQTT_PORT = 8884;
-const MQTT_USERNAME = "YOUR_HIVEMQ_USERNAME";
-const MQTT_PASSWORD = "YOUR_HIVEMQ_PASSWORD";
+const MQTT_HOST="640ee0af2af541f89544aaaba49f7711.s1.eu.hivemq.cloud";
+const MQTT_PORT=8884;
+const MQTT_USERNAME="poweriot_dashboard";
+const MQTT_PASSWORD='poweriot1234';
+const TOPIC_SYSTEM="poweriot/device01/command/system";
+const TOPIC_SOURCE="poweriot/device01/command/source";
+const TOPIC_MODE="poweriot/device01/command/mode";
+const TOPIC_SCHEDULING="poweriot/device01/command/scheduling";
+const TOPIC_STATUS="poweriot/device01/status";
+const TOPIC_SENSORS="poweriot/device01/sensors";
+const TOPIC_SCHEDULE="poweriot/device01/command/schedule";
+const TOPIC_SCHEDULE_STATE="poweriot/device01/schedule/state";
+const MAX_SETS=8,MAX_TIMERS=24;
+let client=null,currentSetId=-1,currentTimerId=-1,scheduleSets=Array.from({length:MAX_SETS},(_,i)=>({exists:false,isActive:false,name:'Set '+(i+1),timers:[]}));
+function log(m){const b=document.getElementById('log');const line=document.createElement('div');line.textContent='['+new Date().toLocaleTimeString()+'] '+m;b.appendChild(line);while(b.childElementCount>80)b.firstElementChild.remove();b.scrollTop=b.scrollHeight}
+function toggleMenu(){document.getElementById('settingsMenu').classList.toggle('show')}
+function toggleMenu2(){document.getElementById('scheduleMenu').classList.toggle('show')}
+function toggleMenu3(){document.getElementById('setMenu').classList.toggle('show')}
+function toggleCredentialsMenu(){document.getElementById('credentialsMenu').classList.toggle('show')}
+function toggleMenu4(){document.getElementById('editTimerMenu').classList.toggle('show')}
+window.onclick=e=>{if(!e.target.closest('.settings-btn')&&!e.target.closest('.dropdown'))document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'))}
+function updateDarkModeLabels(){const dark=document.documentElement.classList.contains('dark-mode');const text=dark?'Toggle Light Mode':'Toggle Dark Mode';['darkModeToggle','darkModeToggleSchedule','darkModeToggleSet','darkModeToggleEdit','darkModeToggleCredentials'].forEach(id=>{const el=document.getElementById(id);if(el)el.textContent=text})}
+function toggleDarkMode(){document.documentElement.classList.toggle('dark-mode');const dark=document.documentElement.classList.contains('dark-mode');localStorage.setItem('darkMode',dark?'1':'0');updateDarkModeLabels();document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'))}
+const AUTH_KEY='poweriotRemoteAuthV1';
+const SESSION_KEY='poweriotRemoteSessionV1';
+const SESSION_MS=30*60*1000;
+async function sha256(text){const data=new TextEncoder().encode(text);const hash=await crypto.subtle.digest('SHA-256',data);return Array.from(new Uint8Array(hash)).map(b=>b.toString(16).padStart(2,'0')).join('')}
+async function getStoredAuth(){let a=localStorage.getItem(AUTH_KEY);if(!a){a=JSON.stringify({username:'admin',passwordHash:await sha256('poweriot123')});localStorage.setItem(AUTH_KEY,a)}return JSON.parse(a)}
+function sessionValid(){try{const s=JSON.parse(localStorage.getItem(SESSION_KEY)||'null');return !!s&&s.loggedIn===true&&(Date.now()-s.time)<SESSION_MS}catch(e){return false}}
+function setSession(){localStorage.setItem(SESSION_KEY,JSON.stringify({loggedIn:true,time:Date.now()}))}
+function clearSession(){localStorage.removeItem(SESSION_KEY)}
+function showLogin(msg){sessionStorage.removeItem('poweriotLastPage');showPage('loginPage');const e=document.getElementById('loginError');e.textContent=msg||'\u00a0';e.classList.toggle('visible',!!msg);document.getElementById('loginPassword').value='';}
+function showDashboard(){showPage('dashboardPage')}
+async function handleRemoteLogin(e){e.preventDefault();const u=document.getElementById('loginUsername').value.trim(),p=document.getElementById('loginPassword').value,a=await getStoredAuth(),h=await sha256(p),box=document.getElementById('loginError');if(u===a.username&&h===a.passwordHash){setSession();box.classList.remove('visible');historyRestoring=true;showDashboard();historyRestoring=false;appNavigationDepth=0;history.replaceState(pageSnapshot('dashboardPage'),'','#dashboardPage');startMQTT();return false}box.textContent=u!==a.username?'Incorrect username':'Incorrect password';box.classList.add('visible');return false}
+function toggleLoginPassword(){const p=document.getElementById('loginPassword'),o=document.getElementById('eyeOpen'),c=document.getElementById('eyeClosed');if(p.type==='password'){p.type='text';o.style.display='none';c.style.display='block'}else{p.type='password';o.style.display='block';c.style.display='none'}}
+async function openCredentials(){document.getElementById('settingsMenu').classList.remove('show');const a=await getStoredAuth();document.getElementById('newUsername').value='';document.getElementById('newPassword').value='';document.getElementById('credentialMessage').classList.remove('visible');showPage('credentialsPage')}
+async function saveRemoteCredentials(e){e.preventDefault();const u=document.getElementById('newUsername').value.trim(),p=document.getElementById('newPassword').value,c=document.getElementById('confirmPassword').value,m=document.getElementById('credentialMessage');m.style.background='';m.style.color='';m.style.borderColor='';if(!u||p.length<4||p!==c){m.textContent=p!==c?'Passwords do not match':'Please complete all fields. Password must be at least 4 characters.';m.classList.add('visible');return false}localStorage.setItem(AUTH_KEY,JSON.stringify({username:u,passwordHash:await sha256(p)}));m.textContent='Credentials saved successfully.';m.classList.add('visible');m.style.background='#e8f5e9';m.style.color='#2e7d32';m.style.borderColor='#a5d6a7';setTimeout(()=>showDashboard(),900);return false}
+function remoteLogout(){sessionStorage.removeItem('poweriotLastPage');document.getElementById('settingsMenu').classList.remove('show');clearSession();localStorage.removeItem('poweriotLastStatus');sessionStorage.removeItem('poweriotLastPage');if(client){try{client.end(true)}catch(e){}client=null}showLogin('')}
+function backToDashboard(){showDashboard()}
+function startMQTT(){if(client&&client.connected)return;connectMQTT()}
 
-/* MQTT topics - kailangang kapareho ng ESP32 firmware */
-const TOPIC_SYSTEM = "poweriot/device01/command/system";
-const TOPIC_SOURCE = "poweriot/device01/command/source";
-const TOPIC_MODE = "poweriot/device01/command/mode";
-const TOPIC_SCHEDULING = "poweriot/device01/command/scheduling";
-const TOPIC_STATUS = "poweriot/device01/status";
-const TOPIC_SENSORS = "poweriot/device01/sensors";
-const TOPIC_SCHEDULE = "poweriot/device01/command/schedule";
-const TOPIC_SCHEDULE_STATE = "poweriot/device01/schedule/state";
-
-const MAX_SETS = 8;
-const MAX_TIMERS_PER_SET = 24;
-let client = null;
-let scheduleData = createEmptyScheduleData();
-let pendingTimer = null;
-let pendingTimerContext = null;
-let scheduleRequestTimeout = null;
-let isReceivingSchedule = false;
-
-function createEmptyScheduleData(){
-  return Array.from({length:MAX_SETS},(_,id)=>({
-    id,exists:false,active:false,name:"",timers:Array.from({length:MAX_TIMERS_PER_SET},(_,timerId)=>({
-      id:timerId,enabled:false,time:"00:00",source:"GRID"
-    }))
-  }));
+let historyRestoring=false;
+let appNavigationDepth=0;
+function pageSnapshot(id){return {poweriotPage:true,id,setId:currentSetId,timerId:currentTimerId,depth:appNavigationDepth}}
+function showPage(id){
+ const previous=document.querySelector('section:not(.hidden)');
+ const previousId=previous?.id;
+ if(id!=='loginPage')sessionStorage.setItem('poweriotLastPage',JSON.stringify({id,setId:currentSetId,timerId:currentTimerId}));
+ ['dashboardPage','schedulePage','setViewPage','renameSetPage','editTimerPage','credentialsPage','loginPage'].forEach(x=>document.getElementById(x).classList.add('hidden'));
+ document.getElementById(id).classList.remove('hidden');
+ if(!historyRestoring && previousId!==id){
+   appNavigationDepth++;
+   history.pushState(pageSnapshot(id),'','#'+id);
+ }
+ window.scrollTo(0,0);
 }
-function log(message){
-  const box=document.getElementById("log");
-  const time=new Date().toLocaleTimeString();
-  const line=document.createElement("div");
-  line.textContent=`[${time}] ${message}`;
-  box.appendChild(line);
-  while(box.children.length>100)box.removeChild(box.firstChild);
-  box.scrollTop=box.scrollHeight;
+function restoreHistoryPage(state){
+ if(!state?.poweriotPage||!document.getElementById(state.id))return;
+ if(!sessionValid()){showLogin('');return}
+ appNavigationDepth=state.depth||0;
+ currentSetId=Number.isInteger(state.setId)?state.setId:-1;
+ currentTimerId=Number.isInteger(state.timerId)?state.timerId:-1;
+ historyRestoring=true;
+ if(state.id==='setViewPage'&&currentSetId>=0&&scheduleSets[currentSetId]?.exists){
+   openSet(currentSetId);
+ }else if(state.id==='editTimerPage'&&currentSetId>=0&&currentTimerId>=0&&scheduleSets[currentSetId]?.timers[currentTimerId]?.enabled){
+   editTimer(currentTimerId);
+ }else if(state.id==='renameSetPage'&&currentSetId>=0&&scheduleSets[currentSetId]?.exists){
+   renameSet(currentSetId);
+ }else{
+   showPage(state.id);
+ }
+ historyRestoring=false;
+ if(['schedulePage','setViewPage','editTimerPage','renameSetPage'].includes(state.id))requestSchedules();
 }
-function toggleMenu(){
-  document.getElementById("settingsMenu").classList.toggle("show");
-  document.getElementById("darkModeToggle").textContent=
-    document.documentElement.classList.contains("dark-mode")?"Toggle Light Mode":"Toggle Dark Mode";
-}
-function toggleDarkMode(){
-  document.documentElement.classList.toggle("dark-mode");
-  localStorage.setItem("darkMode",document.documentElement.classList.contains("dark-mode")?"1":"0");
-  document.getElementById("settingsMenu").classList.remove("show");
-}
-window.addEventListener("click",e=>{
-  if(!e.target.closest(".settings-btn")&&!e.target.closest(".dropdown"))
-    document.getElementById("settingsMenu").classList.remove("show");
+window.addEventListener('popstate',event=>{
+ if(event.state?.poweriotPage){restoreHistoryPage(event.state)}
+ else if(sessionValid()){historyRestoring=true;showPage('dashboardPage');historyRestoring=false}
 });
-function showDeviceInfo(){
-  document.getElementById("settingsMenu").classList.remove("show");
-  alert("PowerIoT Remote Dashboard\nConnection: HiveMQ Cloud MQTT\nDevice ID: device01\nSchedule sets: 8 maximum\nTimers per set: 24 maximum");
+document.addEventListener('click',event=>{
+ const back=event.target.closest('.back-btn');
+ if(!back||!sessionValid())return;
+ if(appNavigationDepth>0){
+   event.preventDefault();
+   event.stopImmediatePropagation();
+   history.back();
+ }
+},true);
+
+function openSchedules(){document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'));showPage('schedulePage');requestSchedules();}
+function showDeviceInfo(){document.querySelectorAll('.dropdown').forEach(x=>x.classList.remove('show'));alert('PowerIoT Remote Dashboard\n\nRemote connection: HiveMQ Cloud MQTT\nDevice: PowerIoT ESP32\nTopics: poweriot/device01/...')}
+function send(topic,value){if(!client||!client.connected){log('ERROR: MQTT not connected');return}client.publish(topic,value,{qos:0});log('TX '+topic+' → '+value)}
+const pendingControls={};
+let lastDeviceStatus=null;
+function renderControlPreview(type,v){
+  const id={system:'systemStatus',source:'sourceStatus',mode:'modeStatus',scheduling:'scheduleStatus'}[type];
+  const el=document.getElementById(id);
+  if(el)el.textContent=type==='system'?v:type==='source'?v:type==='mode'?(v==='AUTO'?'AUTOMATIC':'MANUAL'):(v==='ON'?'ACTIVE':'INACTIVE');
+  const dotId={system:'dotSystem',source:'dotSource',mode:'dotMode',scheduling:'dotSchedule'}[type];
+  const dot=document.getElementById(dotId);
+  if(dot)dot.className='status-dot '+(type==='system'?(v==='ON'?'dot-on':'dot-off'):type==='source'?(v==='SOLAR'?'dot-solar':'dot-grid'):type==='mode'?(v==='AUTO'?'dot-auto':'dot-manual'):(v==='ON'?'dot-sched-on':'dot-off'));
+}
+function toggleControl(type){let v;if(type==='system')v=document.getElementById('sysToggle').checked?'ON':'OFF';else if(type==='source')v=document.getElementById('srcToggle').checked?'SOLAR':'GRID';else if(type==='mode')v=document.getElementById('modeToggle').checked?'AUTO':'MANUAL';else v=document.getElementById('schedToggle').checked?'ON':'OFF';const topic=type==='system'?TOPIC_SYSTEM:type==='source'?TOPIC_SOURCE:type==='mode'?TOPIC_MODE:TOPIC_SCHEDULING;
+if(!client||!client.connected){
+  log('MQTT disconnected; command not sent');
+  if(lastDeviceStatus)updateStatus(lastDeviceStatus);
+  return;
+}
+pendingControls[type]={value:v,until:Date.now()+4000};
+renderControlPreview(type,v);
+send(topic,v);
+setTimeout(()=>{const p=pendingControls[type];if(p&&p.value===v&&Date.now()>=p.until){delete pendingControls[type];if(lastDeviceStatus)updateStatus(lastDeviceStatus);log('Waiting for device confirmation: '+type)}},4100);
+}
+function updateStatus(d){
+lastDeviceStatus=d;
+try{localStorage.setItem('poweriotLastStatus',JSON.stringify(d))}catch(e){}
+const actual={system:d.systemOn?'ON':'OFF',source:d.source||'GRID',mode:d.mode||'MANUAL',scheduling:d.scheduling?'ON':'OFF'};
+for(const [type,p] of Object.entries(pendingControls)){
+ if(actual[type]===p.value || Date.now()>p.until)delete pendingControls[type];
+}
+let sys=!!d.systemOn,src=d.source||'GRID',mode=d.mode||'MANUAL',sched=!!d.scheduling;document.getElementById('systemStatus').textContent=sys?'ON':'OFF';document.getElementById('sysToggle').checked=sys;document.getElementById('dotSystem').className='status-dot '+(sys?'dot-on':'dot-off');document.getElementById('sourceStatus').textContent=src;document.getElementById('srcToggle').checked=src==='SOLAR';document.getElementById('dotSource').className='status-dot '+(src==='SOLAR'?'dot-solar':'dot-grid');document.getElementById('modeStatus').textContent=mode==='AUTO'?'AUTOMATIC':'MANUAL';document.getElementById('modeToggle').checked=mode==='AUTO';document.getElementById('dotMode').className='status-dot '+(mode==='AUTO'?'dot-auto':'dot-manual');document.getElementById('scheduleStatus').textContent=sched?'ACTIVE':'INACTIVE';document.getElementById('schedToggle').checked=sched;document.getElementById('dotSchedule').className='status-dot '+(sched?'dot-sched-on':'dot-off');['sysToggle','srcToggle','modeToggle'].forEach(id=>document.getElementById(id).disabled=sched);['rowSystem','rowSource','rowMode'].forEach(id=>document.getElementById(id).classList.toggle('disabled-switch',sched));document.getElementById('scheduleWarning').style.display=sched?'block':'none';
+for(const [type,p] of Object.entries(pendingControls)){
+ const toggleId={system:'sysToggle',source:'srcToggle',mode:'modeToggle',scheduling:'schedToggle'}[type];
+ const checked=type==='system'||type==='scheduling'?p.value==='ON':type==='source'?p.value==='SOLAR':p.value==='AUTO';
+ document.getElementById(toggleId).checked=checked;
+ renderControlPreview(type,p.value);
+}
+updateNextEvent()}
+function updateSensors(d){try{localStorage.setItem(SENSOR_CACHE_KEY,JSON.stringify(d))}catch(e){}document.getElementById('gridV').textContent=Number(d.gridV||0).toFixed(1)+' V';document.getElementById('gridI').textContent=Number(d.gridI||0).toFixed(2)+' A';document.getElementById('gridP').textContent=Number(d.gridP||0).toFixed(1)+' W';document.getElementById('gridE').textContent=Number(d.gridE||0).toFixed(3)+' kWh';document.getElementById('solarV').textContent=Number(d.solarV||0).toFixed(1)+' V';document.getElementById('solarI').textContent=Number(d.solarI||0).toFixed(2)+' A';document.getElementById('solarP').textContent=Number(d.solarP||0).toFixed(1)+' W';document.getElementById('solarE').textContent=Number(d.solarE||0).toFixed(3)+' kWh'}
+// Cache only fully received schedule snapshots. MQTT updates are staged until END.
+const SCHEDULE_CACHE_KEY='poweriotCompleteScheduleV2';
+const SENSOR_CACHE_KEY='poweriotLastSensorsV2';
+let incomingSchedule=null;
+let scheduleRequestTimer=null;
+function emptySchedule(){return Array.from({length:MAX_SETS},(_,i)=>({exists:false,isActive:false,name:'Set '+(i+1),timers:[]}))}
+function restoreScheduleCache(){
+ try{
+  const raw=JSON.parse(localStorage.getItem(SCHEDULE_CACHE_KEY)||'null');
+  if(!raw||!Array.isArray(raw.sets)||raw.sets.length!==MAX_SETS)return;
+  scheduleSets=raw.sets.map((s,i)=>({exists:!!s.exists,isActive:!!s.isActive,name:String(s.name||('Set '+(i+1))),timers:Array.isArray(s.timers)?s.timers:[]}));
+  renderSets();updateNextEvent();
+  restoreScheduleDetail();
+ }catch(e){console.warn('Schedule cache invalid',e)}
+}
+function restoreScheduleDetail(){
+ if(currentSetId<0||currentSetId>=MAX_SETS||!scheduleSets[currentSetId]?.exists)return;
+ const set=scheduleSets[currentSetId];
+ document.getElementById('setViewTitle').textContent=set.name;
+ document.getElementById('setViewStatus').textContent=set.isActive?'ACTIVE':'INACTIVE';
+ document.getElementById('setViewStatus').style.color=set.isActive?'#388e3c':'var(--txt-muted)';
+ renderTimers();
+ if(!document.getElementById('renameSetPage').classList.contains('hidden'))document.getElementById('renameSetInput').value=set.name;
+ if(!document.getElementById('editTimerPage').classList.contains('hidden')){
+  const t=set.timers[currentTimerId];
+  if(t&&t.enabled){document.getElementById('editTimerSetName').textContent=set.name;document.getElementById('editTimerTime').value=t.time;document.getElementById('editTimerSource').value=t.source}
+ }
+}
+function cacheCompleteSchedule(){try{localStorage.setItem(SCHEDULE_CACHE_KEY,JSON.stringify({savedAt:Date.now(),sets:scheduleSets}))}catch(e){}}
+function stageScheduleStart(){
+ if(incomingSchedule)return; // Do not erase an in-progress transfer.
+ incomingSchedule=emptySchedule();
+ clearTimeout(scheduleRequestTimer);
+ scheduleRequestTimer=setTimeout(()=>{incomingSchedule=null;log('Schedule sync timed out; keeping last complete schedule')},15000);
+}
+function parseSchedule(msg){
+ if(msg==='END'){
+  if(!incomingSchedule)return;
+  clearTimeout(scheduleRequestTimer);scheduleRequestTimer=null;
+  scheduleSets=incomingSchedule;incomingSchedule=null;
+  cacheCompleteSchedule();
+  renderSets();restoreScheduleDetail();updateNextEvent();
+  return;
+ }
+ let p=msg.split('|');
+ if(p[0]!=='SET'&&p[0]!=='TIMER')return;
+ stageScheduleStart();
+ const target=incomingSchedule;
+ if(p[0]==='SET'){
+  let id=+p[1];if(id>=0&&id<MAX_SETS){target[id].exists=p[2]==='1';target[id].isActive=p[3]==='1';target[id].name=p.slice(4).join('|')||('Set '+(id+1))}
+ }else if(p[0]==='TIMER'){
+  let si=+p[1],ti=+p[2];
+  if(si>=0&&si<MAX_SETS&&ti>=0&&ti<MAX_TIMERS)target[si].timers[ti]={enabled:p[3]==='1',time:p[4],source:p[5]==='SOLAR'?'SOLAR':'GRID'};
+ }
+}
+function requestSchedules(){
+ if(client&&client.connected){
+  // Keep the displayed schedule untouched until the complete MQTT response arrives.
+  // A new REQUEST resets only the hidden staging buffer.
+  clearTimeout(scheduleRequestTimer);
+  incomingSchedule=emptySchedule();
+  scheduleRequestTimer=setTimeout(()=>{incomingSchedule=null;log('Schedule sync timed out; showing cached data')},15000);
+  send(TOPIC_SCHEDULE,'REQUEST');
+ }
 }
 
-/* MQTT */
-function connectMQTT(){
-  if(typeof mqtt==="undefined"){log("ERROR: MQTT library did not load.");return;}
-  log("Connecting to HiveMQ Cloud...");
-  const clientId="PowerIoT-Web-"+Math.random().toString(16).slice(2,10);
-  client=mqtt.connect(`wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`,{
-    username:MQTT_USERNAME,password:MQTT_PASSWORD,clientId,
-    clean:true,reconnectPeriod:3000,connectTimeout:10000
-  });
-  client.on("connect",()=>{
-    log("MQTT CONNECTED");
-    const el=document.getElementById("connectionStatus");
-    el.innerHTML='<span class="connection-dot"></span>CONNECTED';
-    el.classList.add("connected");
-    client.subscribe([TOPIC_STATUS,TOPIC_SENSORS,TOPIC_SCHEDULE_STATE],err=>{
-      if(err)log("Subscribe error: "+err.message);
-      else{
-        log("Subscribed to status, sensors and schedule state.");
-        requestScheduleState();
-      }
-    });
-  });
-  client.on("reconnect",()=>log("Reconnecting to MQTT..."));
-  client.on("message",(topic,message)=>{
-    const payload=message.toString();
-    if(topic===TOPIC_STATUS){
-      try{updateStatus(JSON.parse(payload));}
-      catch(e){log("Status JSON error: "+e.message);}
-    }else if(topic===TOPIC_SENSORS){
-      try{updateSensors(JSON.parse(payload));}
-      catch(e){log("Sensor JSON error: "+e.message);}
-    }else if(topic===TOPIC_SCHEDULE_STATE){
-      handleScheduleStateMessage(payload);
-    }
-  });
-  client.on("error",err=>log("MQTT ERROR: "+err.message));
-  client.on("close",()=>{
-    const el=document.getElementById("connectionStatus");
-    el.innerHTML='<span class="connection-dot"></span>DISCONNECTED';
-    el.classList.remove("connected");
-    log("MQTT DISCONNECTED");
-  });
-}
-function publishMessage(topic,payload){
-  if(!client||!client.connected){log("ERROR: MQTT is not connected.");return false;}
-  client.publish(topic,String(payload),{qos:0,retain:false},err=>{
-    if(err)log("Publish failed: "+err.message);
-    else log("TX "+topic+" → "+payload);
-  });
+function renderSets(){const box=document.getElementById('setsList');box.innerHTML='';let any=false;scheduleSets.forEach((s,i)=>{if(!s.exists)return;any=true;let timers=s.timers.filter(x=>x&&x.enabled).length;let d=document.createElement('div');d.className='set-card'+(s.isActive?' active-set':'');d.innerHTML='<div class="set-info"><div class="set-name">'+esc(s.name)+'</div><div class="set-meta"><span style="color:'+(s.isActive?'#388e3c':'var(--txt-muted)')+';font-weight:bold">'+(s.isActive?'ACTIVE':'Inactive')+'</span> - '+timers+' timer'+(timers!==1?'s':'')+'</div></div><div class="set-actions"><button class="btn" style="padding:8px 12px;font-size:12px" onclick="renameSet('+i+')">RENAME</button><button class="btn" style="padding:8px 12px;font-size:12px;background:#388e3c" onclick="openSet('+i+')">OPEN</button><button class="danger" style="padding:8px 12px;font-size:12px" onclick="deleteSet('+i+')">DELETE</button><label class="switch"><input type="checkbox" '+(s.isActive?'checked':'')+' onchange="toggleSet('+i+',this.checked)"><span class="slider slider-set"><span class="slider-text-left">OFF</span><span class="slider-text-right">ON</span></span></label></div>';box.appendChild(d)});if(!any)box.innerHTML='<p style="text-align:center;color:var(--txt-muted);padding:25px 0">No schedule sets yet.<br>Click <b>ADD NEW SET</b> below to create one.</p>'}
+function esc(s){return String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]))}
+function fastScheduleAction(command){
+  if(!client||!client.connected){log('MQTT disconnected; action not sent');return false}
+  send(TOPIC_SCHEDULE,command);
+  const btn=document.activeElement;
+  if(btn&&btn.tagName==='BUTTON'){
+    const original=btn.textContent;
+    btn.textContent='SENT';
+    btn.disabled=true;
+    setTimeout(()=>{if(btn.isConnected){btn.textContent=original;btn.disabled=false}},650);
+  }
   return true;
 }
-function sendCommand(type,value){
-  const topics={system:TOPIC_SYSTEM,source:TOPIC_SOURCE,mode:TOPIC_MODE,scheduling:TOPIC_SCHEDULING};
-  const topic=topics[type];
-  if(!topic){log("Unknown command: "+type);return;}
-  publishMessage(topic,value);
-}
-function toggleControl(type){
-  const ids={system:"sysToggle",source:"srcToggle",mode:"modeToggle",scheduling:"schedToggle"};
-  const el=document.getElementById(ids[type]);
-  if(!el)return;
-  const values={
-    system:el.checked?"ON":"OFF",
-    source:el.checked?"SOLAR":"GRID",
-    mode:el.checked?"AUTO":"MANUAL",
-    scheduling:el.checked?"ON":"OFF"
-  };
-  if(!publishMessage(({system:TOPIC_SYSTEM,source:TOPIC_SOURCE,mode:TOPIC_MODE,scheduling:TOPIC_SCHEDULING})[type],values[type])){
-    // Revert only when there is no MQTT connection; do not revert while awaiting ESP32.
-    el.checked=!el.checked;
-  }
-}
-
-/* Authoritative status from ESP32. Supports bool and ON/OFF payload forms. */
-function asOn(value){
-  if(typeof value==="boolean")return value;
-  const s=String(value??"").trim().toUpperCase();
-  return s==="ON"||s==="TRUE"||s==="1"||s==="AUTO"||s==="SOLAR";
-}
-function updateStatus(data){
-  const systemOn=asOn(data.systemOn??data.system);
-  const source=String(data.source??data.activeSource??"GRID").toUpperCase();
-  const mode=String(data.mode??"MANUAL").toUpperCase();
-  const scheduling=asOn(data.scheduling);
-  document.getElementById("systemStatus").textContent=systemOn?"ON":"OFF";
-  document.getElementById("sysToggle").checked=systemOn;
-  document.getElementById("dotSystem").className="status-dot "+(systemOn?"dot-on":"dot-off");
-  document.getElementById("sourceStatus").textContent=String(data.activeSource??source).toUpperCase();
-  document.getElementById("srcToggle").checked=source==="SOLAR";
-  document.getElementById("dotSource").className="status-dot "+(source==="SOLAR"?"dot-solar":"dot-grid");
-  document.getElementById("modeStatus").textContent=mode==="AUTO"?"AUTOMATIC":"MANUAL";
-  document.getElementById("modeToggle").checked=mode==="AUTO";
-  document.getElementById("dotMode").className="status-dot "+(mode==="AUTO"?"dot-auto":"dot-manual");
-  document.getElementById("scheduleStatus").textContent=scheduling?"ACTIVE":"INACTIVE";
-  document.getElementById("schedToggle").checked=scheduling;
-  document.getElementById("dotSchedule").className="status-dot "+(scheduling?"dot-sched-on":"dot-off");
-  const locked=scheduling;
-  ["sysToggle","srcToggle","modeToggle"].forEach(id=>document.getElementById(id).disabled=locked);
-  document.querySelectorAll("#controls .switch-row").forEach((row,index)=>{
-    if(index<3)row.classList.toggle("disabled-switch",locked);
-  });
-  document.getElementById("scheduleWarning").style.display=locked?"block":"none";
-  const next=data.nextScheduleText??data.nextSchedule??"--";
-  document.getElementById("nextSchedule").textContent=String(next);
-  document.getElementById("dotNext").className="status-dot "+(String(next)!=="--"?"dot-sched-on":"dot-off");
-}
-function updateSensors(data){
-  const pairs=[
-    ["gridV",data.gridV??data.grid?.voltage,2],
-    ["gridI",data.gridI??data.grid?.current,2],
-    ["gridP",data.gridP??data.grid?.power,2],
-    ["gridE",data.gridE??data.grid?.energy,3],
-    ["solarV",data.solarV??data.solar?.voltage,2],
-    ["solarI",data.solarI??data.solar?.current,2],
-    ["solarP",data.solarP??data.solar?.power,2],
-    ["solarE",data.solarE??data.solar?.energy,3]
-  ];
-  pairs.forEach(([id,value,digits])=>{
-    const n=Number(value??0);
-    document.getElementById(id).textContent=Number.isFinite(n)?n.toFixed(digits):"0.00";
-  });
-}
-
-/* Schedule state protocol from ESP32:
-   SET|setId|exists(0/1)|active(0/1)|name
-   TIMER|setId|timerId|enabled(0/1)|HH:MM|GRID/SOLAR
-   END
-*/
-function requestScheduleState(){
-  if(!client||!client.connected){document.getElementById("scheduleSyncStatus").textContent="MQTT disconnected";return;}
-  scheduleData=createEmptyScheduleData();
-  isReceivingSchedule=true;
-  document.getElementById("scheduleSyncStatus").textContent="Syncing from ESP32...";
-  renderScheduleSets();
-  publishMessage(TOPIC_SCHEDULE,"REQUEST");
-  clearTimeout(scheduleRequestTimeout);
-  scheduleRequestTimeout=setTimeout(()=>{
-    if(isReceivingSchedule){
-      isReceivingSchedule=false;
-      document.getElementById("scheduleSyncStatus").textContent="No schedule response. Check ESP32 MQTT.";
-    }
-  },8000);
-}
-function handleScheduleStateMessage(payload){
-  if(payload==="END"){
-    isReceivingSchedule=false;
-    clearTimeout(scheduleRequestTimeout);
-    document.getElementById("scheduleSyncStatus").textContent="Synchronized with ESP32";
-    renderScheduleSets();
-    return;
-  }
-  const f=payload.split("|");
-  if(f[0]==="SET"&&f.length>=5){
-    const id=Number(f[1]);
-    if(id<0||id>=MAX_SETS)return;
-    scheduleData[id].exists=f[2]==="1";
-    scheduleData[id].active=f[3]==="1";
-    scheduleData[id].name=f.slice(4).join("|");
-  }else if(f[0]==="TIMER"&&f.length>=6){
-    const sid=Number(f[1]),tid=Number(f[2]);
-    if(sid<0||sid>=MAX_SETS||tid<0||tid>=MAX_TIMERS_PER_SET)return;
-    scheduleData[sid].timers[tid]={
-      id:tid,enabled:f[3]==="1",time:f[4],source:f[5]==="SOLAR"?"SOLAR":"GRID"
-    };
-  }
-}
-function renderScheduleSets(){
-  const root=document.getElementById("scheduleSets");
-  const sets=scheduleData.filter(s=>s.exists);
-  if(!sets.length){
-    root.innerHTML='<div class="empty">No schedule sets found. Click “Add Schedule Set” to create one.</div>';
-    return;
-  }
-  root.innerHTML="";
-  sets.forEach(set=>{
-    const card=document.createElement("div");
-    card.className="schedule-set";
-    const head=document.createElement("div");
-    head.className="set-head";
-    const title=document.createElement("div");
-    title.className="set-title";
-    title.textContent=set.name||("Set "+(set.id+1));
-    if(set.active){
-      const tag=document.createElement("span");tag.className="active-tag";tag.textContent="ACTIVE";
-      title.appendChild(document.createTextNode(" "));
-      title.appendChild(tag);
-    }
-    const actions=document.createElement("div");actions.className="set-actions";
-    actions.appendChild(makeButton(set.active?"Turn OFF":"Activate",set.active?"btn-gray":"btn-green",()=>toggleSet(set.id,!set.active)));
-    actions.appendChild(makeButton("Rename","btn-gray",()=>renameSet(set.id)));
-    actions.appendChild(makeButton("＋ Add Timer","btn-teal",()=>openTimerModal("add",set.id)));
-    actions.appendChild(makeButton("Delete","btn-red",()=>deleteSet(set.id)));
-    head.append(title,actions);card.appendChild(head);
-    const timers=set.timers.map(t=>t).filter(t=>t.enabled).sort((a,b)=>a.time.localeCompare(b.time));
-    const list=document.createElement("div");list.className="timer-list";
-    if(!timers.length){
-      const empty=document.createElement("div");empty.className="empty";empty.textContent="No active timers in this set.";list.appendChild(empty);
-    }else{
-      timers.forEach(timer=>{
-        const row=document.createElement("div");row.className="timer-row";
-        const main=document.createElement("div");main.className="timer-main";
-        const time=document.createElement("div");time.className="timer-time";time.textContent=timer.time;
-        const meta=document.createElement("div");meta.className="timer-meta";meta.textContent="Power source: "+timer.source;
-        main.append(time,meta);
-        const source=document.createElement("span");source.className="active-tag";source.style.background=timer.source==="SOLAR"?"#ef6c00":"#1976d2";source.textContent=timer.source;
-        const btns=document.createElement("div");btns.className="timer-actions";
-        btns.appendChild(makeButton("Edit","btn-gray",()=>openTimerModal("edit",set.id,timer.id)));
-        btns.appendChild(makeButton("Delete","btn-red",()=>deleteTimer(set.id,timer.id)));
-        row.append(main,source,btns);list.appendChild(row);
-      });
-    }
-    card.appendChild(list);root.appendChild(card);
-  });
-}
-function makeButton(label,className,handler){
-  const b=document.createElement("button");b.type="button";b.className=className;b.textContent=label;b.addEventListener("click",handler);return b;
-}
-function addScheduleSet(){
-  if(!confirm("Create a new schedule set on the ESP32?"))return;
-  publishMessage(TOPIC_SCHEDULE,"SET_ADD");
-}
-function deleteSet(id){
-  const set=scheduleData[id];
-  if(!confirm(`Delete schedule set "${set.name}" and its timers?`))return;
-  publishMessage(TOPIC_SCHEDULE,`SET_DELETE|${id}`);
-}
-function toggleSet(id,turnOn){
-  publishMessage(TOPIC_SCHEDULE,`SET_TOGGLE|${id}|${turnOn?"ON":"OFF"}`);
-}
+function addSet(){fastScheduleAction('SET_ADD')}
+function deleteSet(id){if(confirm('Delete this set?'))fastScheduleAction('SET_DELETE|'+id)}
+function toggleSet(id,on){fastScheduleAction('SET_TOGGLE|'+id+'|'+(on?'ON':'OFF'))}
 function renameSet(id){
-  const oldName=scheduleData[id].name||"";
-  const name=prompt("Enter new schedule set name (maximum 32 characters):",oldName);
-  if(name===null)return;
-  const clean=name.trim().slice(0,32);
-  if(!clean){alert("Please enter a schedule set name.");return;}
-  publishMessage(TOPIC_SCHEDULE,`SET_RENAME|${id}|${clean.replace(/\|/g,"/")}`);
+  if(id<0 || id>=MAX_SETS || !scheduleSets[id].exists)return;
+  currentSetId=id;
+  document.getElementById('renameSetInput').value=scheduleSets[id].name;
+  const m=document.getElementById('renameSetMessage');
+  m.textContent='\u00a0';
+  m.classList.remove('visible');
+  showPage('renameSetPage');
+  setTimeout(()=>document.getElementById('renameSetInput').focus(),50);
 }
-function openTimerModal(action,setId,timerId=null){
-  pendingTimerContext={action,setId,timerId};
-  const modal=document.getElementById("editModal");
-  const time=document.getElementById("timerTime");
-  const source=document.getElementById("timerSource");
-  if(action==="edit"){
-    const timer=scheduleData[setId].timers[timerId];
-    time.value=timer.time||"08:00";source.value=timer.source||"GRID";
-    document.getElementById("modalTitle").textContent="Edit Timer";
-  }else{
-    time.value="08:00";source.value="GRID";
-    document.getElementById("modalTitle").textContent="Add Timer";
+function saveRenameSet(e){
+  e.preventDefault();
+  const input=document.getElementById('renameSetInput');
+  const m=document.getElementById('renameSetMessage');
+  let n=input.value.trim();
+  if(!n){
+    m.textContent='Please enter a set name.';
+    m.classList.add('visible');
+    return false;
   }
-  modal.classList.add("show");
+  n=n.slice(0,32);
+  fastScheduleAction('SET_RENAME|'+currentSetId+'|'+n);
+  m.textContent='Saving name...';
+  m.classList.add('visible');
+  m.style.background='#e8f5e9';
+  m.style.color='#2e7d32';
+  m.style.borderColor='#a5d6a7';
+  showPage('schedulePage');
+  requestSchedules();
+  return false;
 }
-function closeTimerModal(){
-  document.getElementById("editModal").classList.remove("show");
-  pendingTimerContext=null;
-}
-function saveTimerModal(){
-  if(!pendingTimerContext)return;
-  const {action,setId,timerId}=pendingTimerContext;
-  const time=document.getElementById("timerTime").value;
-  const source=document.getElementById("timerSource").value;
-  if(!/^([01]\d|2[0-3]):[0-5]\d$/.test(time)){alert("Invalid time.");return;}
-  if(action==="add"){
-    publishMessage(TOPIC_SCHEDULE,`TIMER_ADD|${setId}|${time}|${source}`);
+function cancelRenameSet(){
+  if(currentSetId>=0){
+    showPage('schedulePage');
+    requestSchedules();
   }else{
-    publishMessage(TOPIC_SCHEDULE,`TIMER_EDIT|${setId}|${timerId}|${time}|${source}`);
+    showPage('schedulePage');
   }
-  closeTimerModal();
 }
-function deleteTimer(setId,timerId){
-  const timer=scheduleData[setId].timers[timerId];
-  if(!confirm(`Delete timer ${timer.time}?`))return;
-  publishMessage(TOPIC_SCHEDULE,`TIMER_DELETE|${setId}|${timerId}`);
+function openSet(id){currentSetId=id;document.getElementById('setViewTitle').textContent=scheduleSets[id].name;document.getElementById('setViewStatus').textContent=scheduleSets[id].isActive?'ACTIVE':'INACTIVE';document.getElementById('setViewStatus').style.color=scheduleSets[id].isActive?'#388e3c':'var(--txt-muted)';renderTimers();showPage('setViewPage')}
+function renameCurrentSet(){if(currentSetId>=0)renameSet(currentSetId)}
+function addTimer(){let time=document.getElementById('newTimerTime').value,source=document.getElementById('newTimerSource').value;if(!time)return alert('Select a target time.');let dup=scheduleSets[currentSetId].timers.some(x=>x&&x.enabled&&x.time===time);if(dup)return alert('Duplicate timer at this time.');if(fastScheduleAction('TIMER_ADD|'+currentSetId+'|'+time+'|'+source))document.getElementById('newTimerTime').value=''}
+function editTimer(id){
+  let t=scheduleSets[currentSetId]?.timers[id];
+  if(!t||!t.enabled)return;
+  currentTimerId=id;
+  document.getElementById('editTimerSetName').textContent=scheduleSets[currentSetId].name;
+  document.getElementById('editTimerTime').value=t.time;
+  document.getElementById('editTimerSource').value=t.source==='SOLAR'?'SOLAR':'GRID';
+  const m=document.getElementById('editTimerMessage');
+  m.textContent='\u00a0';
+  m.classList.remove('visible');
+  m.style.background='';m.style.color='';m.style.borderColor='';
+  showPage('editTimerPage');
+  setTimeout(()=>document.getElementById('editTimerTime').focus(),50);
 }
-document.getElementById("editModal").addEventListener("click",e=>{
-  if(e.target.id==="editModal")closeTimerModal();
-});
-
-/* Start */
-connectMQTT();
+function saveEditTimer(e){
+  e.preventDefault();
+  if(currentSetId<0 || currentTimerId<0)return false;
+  const time=document.getElementById('editTimerTime').value;
+  const source=document.getElementById('editTimerSource').value;
+  const m=document.getElementById('editTimerMessage');
+  if(!time){m.textContent='Please select a target time.';m.classList.add('visible');return false}
+  let dup=scheduleSets[currentSetId].timers.some((x,i)=>x&&x.enabled&&i!==currentTimerId&&x.time===time);
+  if(dup){m.textContent='A timer already exists at this time.';m.classList.add('visible');return false}
+  fastScheduleAction('TIMER_EDIT|'+currentSetId+'|'+currentTimerId+'|'+time+'|'+source);
+  m.textContent='Saving changes...';
+  m.classList.add('visible');
+  m.style.background='#e8f5e9';m.style.color='#2e7d32';m.style.borderColor='#a5d6a7';
+  showPage('setViewPage');requestSchedules();
+  return false;
+}
+function cancelEditTimer(){showPage('setViewPage');renderTimers()}
+function deleteTimer(id){if(confirm('Delete this timer?'))fastScheduleAction('TIMER_DELETE|'+currentSetId+'|'+id)}
+function renderTimers(){let body=document.getElementById('timersBody');body.innerHTML='';let arr=scheduleSets[currentSetId].timers.map((t,i)=>({t,i})).filter(x=>x.t&&x.t.enabled).sort((a,b)=>a.t.time.localeCompare(b.t.time));document.getElementById('noTimers').style.display=arr.length?'none':'block';arr.forEach(x=>{let tr=document.createElement('tr');tr.innerHTML='<td><b>'+esc(x.t.time)+'</b></td><td>'+esc(x.t.source)+'</td><td><div class="timer-actions"><button class="btn" style="padding:6px 12px;font-size:12px" onclick="editTimer('+x.i+')">EDIT</button><button class="danger" style="padding:6px 12px;font-size:12px" onclick="deleteTimer('+x.i+')">DELETE</button></div></td>';body.appendChild(tr)})}
+function updateNextEvent(){let active=scheduleSets.find(s=>s.exists&&s.isActive);let el=document.getElementById('nextSchedule'),dot=document.getElementById('dotNext');if(!active){el.textContent='--';dot.className='status-dot dot-event-inactive';return}let now=new Date(),cur=now.getHours()*60+now.getMinutes(),best=null;active.timers.filter(t=>t&&t.enabled).forEach(t=>{let [h,m]=t.time.split(':').map(Number),v=h*60+m;if(v>cur&&(!best||v<best.v))best={v,time:t.time,source:t.source}});if(!best){active.timers.filter(t=>t&&t.enabled).forEach(t=>{let [h,m]=t.time.split(':').map(Number),v=h*60+m;if(!best||v<best.v)best={v,time:t.time,source:t.source}})}el.textContent=best?best.time+' → '+best.source:'--';dot.className='status-dot '+(best?'dot-event-active':'dot-event-inactive')}
+function connectMQTT(){log('Connecting to HiveMQ Cloud...');let id='PowerIoT-Web-'+Math.random().toString(16).slice(2,10);client=mqtt.connect(`wss://${MQTT_HOST}:${MQTT_PORT}/mqtt`,{username:MQTT_USERNAME,password:MQTT_PASSWORD,clientId:id,clean:true,reconnectPeriod:3000,connectTimeout:10000});client.on('connect',()=>{log('MQTT CONNECTED');let s=document.getElementById('connectionStatus');s.innerHTML='<span class="connection-dot"></span>CONNECTED';s.classList.add('connected');client.subscribe(TOPIC_STATUS);client.subscribe(TOPIC_SENSORS);client.subscribe(TOPIC_SCHEDULE_STATE);log('Subscribed to status');log('Subscribed to sensors');log('Subscribed to schedule state');requestSchedules()});client.on('message',(topic,message)=>{let data=message.toString();if(topic!==TOPIC_SENSORS&&topic!==TOPIC_STATUS)log('RX '+topic+' → '+data);if(topic===TOPIC_SCHEDULE_STATE){parseSchedule(data);return}try{let j=JSON.parse(data);if(topic===TOPIC_STATUS)updateStatus(j);if(topic===TOPIC_SENSORS)updateSensors(j)}catch(e){log('JSON ERROR')}});client.on('error',e=>log('MQTT ERROR: '+e.message));client.on('close',()=>{log('MQTT DISCONNECTED');let s=document.getElementById('connectionStatus');s.innerHTML='<span class="connection-dot"></span>DISCONNECTED';s.classList.remove('connected')})}
+setInterval(updateNextEvent,30000);window.addEventListener('load',async()=>{if(localStorage.getItem('darkMode')==='1')document.documentElement.classList.add('dark-mode');updateDarkModeLabels();restoreScheduleCache();try{const sensor=JSON.parse(localStorage.getItem(SENSOR_CACHE_KEY)||'null');if(sensor)updateSensors(sensor)}catch(e){}try{const cached=JSON.parse(localStorage.getItem('poweriotLastStatus')||'null');if(cached)updateStatus(cached)}catch(e){}if(sessionValid()){let saved=null;try{saved=JSON.parse(sessionStorage.getItem('poweriotLastPage')||'null')}catch(e){};if(saved&&['dashboardPage','schedulePage','setViewPage','renameSetPage','editTimerPage','credentialsPage'].includes(saved.id)){currentSetId=Number.isInteger(saved.setId)?saved.setId:-1;currentTimerId=Number.isInteger(saved.timerId)?saved.timerId:-1;historyRestoring=true;showPage(saved.id);historyRestoring=false;appNavigationDepth=history.state?.poweriotPage?(history.state.depth||0):0;history.replaceState(pageSnapshot(saved.id),'','#'+saved.id)}else{historyRestoring=true;showDashboard();historyRestoring=false;history.replaceState(pageSnapshot('dashboardPage'),'','#dashboardPage')}restoreScheduleDetail();startMQTT()}else{showLogin('')}});
 </script>
-</body>
-</html>
+</body></html>
